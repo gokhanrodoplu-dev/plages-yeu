@@ -6,7 +6,6 @@ import matplotlib.pyplot as plt
 import streamlit as st
 import folium
 from streamlit_folium import st_folium
-from google import genai
 
 # --- CONFIGURATION ---
 LATITUDE, LONGITUDE = 46.7236, -2.3503
@@ -40,74 +39,45 @@ def haversine(lat1, lon1, lat2, lon2):
 st.set_page_config(page_title="Plages Yeu PRO", layout="wide")
 st.title("🏝️ Plages Idéales - Île d'Yeu")
 
-start_point = st.sidebar.selectbox("📍 Départ", list(START_POINTS.keys()))
+# Sidebar
+start_name = st.sidebar.selectbox("📍 Départ", list(START_POINTS.keys()))
+transport = st.sidebar.radio("🚲 Moyen de transport", ["Vélo", "Voiture"])
 date = st.date_input("📅 Date", datetime.date.today())
+time_now = datetime.datetime.now().hour
 
-# Fetch Data
+# Data
 url = f"https://api.open-meteo.com/v1/forecast?latitude={LATITUDE}&longitude={LONGITUDE}&hourly=temperature_2m,wind_speed_10m,wind_direction_10m,sea_surface_temperature&timezone=Europe/Paris&start_date={date}&end_date={date}"
 w = requests.get(url).json()["hourly"]
-idx = 12 # Mid-day
-temp, water, wind, deg = w["temperature_2m"][idx], w["sea_surface_temperature"][idx], w["wind_speed_10m"][idx], w["wind_direction_10m"][idx]
-card = ["N", "NE", "E", "SE", "S", "SO", "O", "NO"][round(deg / 45) % 8]
+t, w_t, w_s, d = w["temperature_2m"][time_now], w["sea_surface_temperature"][time_now], w["wind_speed_10m"][time_now], w["wind_direction_10m"][time_now]
+card = ["N", "NE", "E", "SE", "S", "SO", "O", "NO"][round(d / 45) % 8]
 
-st.subheader(f"🌡️ Air: {temp}°C | 💧 Eau: {water}°C | 💨 Vent: {wind} km/h ({card})")
+col1, col2 = st.columns([1, 1.5])
 
-# Marée (Simulation)
-heights = [3.0 + 2.0 * math.sin((i - 4) * math.pi / 6.2) for i in range(24)]
-fig, ax = plt.subplots(figsize=(8, 2))
-ax.plot(range(24), heights, color="#0288d1")
-ax.set_title("Cycle Marée")
-st.pyplot(fig)
-
-# Carte
-m = folium.Map(location=[46.72, -2.35], zoom_start=13, tiles="CartoDB positron")
-for b in BEACHES:
-    status, emoji, color = ("Recommandée", "😊", "green") if card in b["good"] else (("Déconseillée", "☹️", "red") if card in b["bad"] else ("Moyenne", "😐", "orange"))
-    dist = haversine(START_POINTS[start_point]["lat"], START_POINTS[start_point]["lon"], b["lat"], b["lon"])
+with col1:
+    st.subheader("📊 Conditions")
+    st.write(f"🌡️ Air: {t}°C | 💧 Eau: {w_t}°C | 💨 {w_s} km/h ({card})")
     
-    popup_text = f"<b>{b['name']}</b><br>{emoji} {status}<br>🚲 {int(dist*1.3/14*60)} min<br>📍 {b['lat']:.4f}, {b['lon']:.4f}"
-    folium.Marker(
-        location=[b["lat"], b["lon"]],
-        icon=folium.DivIcon(html=f'<div style="font-size: 20px;">{emoji}</div>'),
-        popup=folium.Popup(popup_text, max_width=200)
-    ).add_to(m)
+    # Marée avec point rouge
+    heights = [3.0 + 2.0 * math.sin((i - 4) * math.pi / 6.2) for i in range(24)]
+    fig, ax = plt.subplots(figsize=(6, 3))
+    ax.plot(range(24), heights, color="#0288d1")
+    ax.scatter(time_now, heights[time_now], color="red", zorder=5) # Point rouge
+    ax.set_title("Cycle Marée (Red = Maintenant)")
+    st.pyplot(fig)
 
-st_folium(m, width=800, height=500)    a = math.sin(dLat/2)**2 + math.cos(math.radians(lat1))*math.cos(math.radians(lat2))*math.sin(dLon/2)**2
-    return R * (2 * math.asin(math.sqrt(a)))
-
-st.set_page_config(page_title="Plages Yeu PRO", layout="wide")
-st.title("🏝️ Plages Idéales - Île d'Yeu")
-
-start_point = st.sidebar.selectbox("📍 Départ", list(START_POINTS.keys()))
-date = st.date_input("📅 Date", datetime.date.today())
-
-# Fetch Data
-url = f"https://api.open-meteo.com/v1/forecast?latitude={LATITUDE}&longitude={LONGITUDE}&hourly=temperature_2m,wind_speed_10m,wind_direction_10m,sea_surface_temperature&timezone=Europe/Paris&start_date={date}&end_date={date}"
-w = requests.get(url).json()["hourly"]
-idx = 12 # Mid-day
-temp, water, wind, deg = w["temperature_2m"][idx], w["sea_surface_temperature"][idx], w["wind_speed_10m"][idx], w["wind_direction_10m"][idx]
-card = ["N", "NE", "E", "SE", "S", "SO", "O", "NO"][round(deg / 45) % 8]
-
-st.subheader(f"🌡️ Air: {temp}°C | 💧 Eau: {water}°C | 💨 Vent: {wind} km/h ({card})")
-
-# Marée (Simulation)
-heights = [3.0 + 2.0 * math.sin((i - 4) * math.pi / 6.2) for i in range(24)]
-fig, ax = plt.subplots(figsize=(8, 2))
-ax.plot(range(24), heights, color="#0288d1")
-ax.set_title("Cycle Marée")
-st.pyplot(fig)
-
-# Carte
-m = folium.Map(location=[46.72, -2.35], zoom_start=13, tiles="CartoDB positron")
-for b in BEACHES:
-    status, emoji, color = ("Recommandée", "😊", "green") if card in b["good"] else (("Déconseillée", "☹️", "red") if card in b["bad"] else ("Moyenne", "😐", "orange"))
-    dist = haversine(START_POINTS[start_point]["lat"], START_POINTS[start_point]["lon"], b["lat"], b["lon"])
+with col2:
+    st.subheader("🗺️ Carte")
+    m = folium.Map(location=[46.72, -2.35], zoom_start=13, tiles="CartoDB positron")
     
-    popup_text = f"<b>{b['name']}</b><br>{emoji} {status}<br>🚲 {int(dist*1.3/14*60)} min<br>📍 {b['lat']:.4f}, {b['lon']:.4f}"
-    folium.Marker(
-        location=[b["lat"], b["lon"]],
-        icon=folium.DivIcon(html=f'<div style="font-size: 20px;">{emoji}</div>'),
-        popup=folium.Popup(popup_text, max_width=200)
-    ).add_to(m)
-
-st_folium(m, width=800, height=500)
+    for b in BEACHES:
+        emoji, color = ("😊", "green") if card in b["good"] else (("☹️", "red") if card in b["bad"] else ("😐", "orange"))
+        dist = haversine(START_POINTS[start_name]["lat"], START_POINTS[start_name]["lon"], b["lat"], b["lon"])
+        speed = 14 if transport == "Vélo" else 30
+        
+        popup_text = f"<b>{b['name']}</b><br>{emoji}<br>{int(dist*1.3/speed*60)} min en {transport}"
+        folium.Marker(
+            location=[b["lat"], b["lon"]],
+            icon=folium.DivIcon(html=f'<div style="font-size:20px; color:{color};">●</div>'),
+            popup=folium.Popup(popup_text, max_width=150)
+        ).add_to(m)
+    st_folium(m, width=800, height=500)
