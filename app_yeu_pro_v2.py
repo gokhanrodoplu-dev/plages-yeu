@@ -18,33 +18,33 @@ START_POINTS = {
     "Port de la Meule": {"lat": 46.6970, "lon": -2.3190}
 }
 
-# --- LISTE COMPLÈTE DES PLAGES ---
+# --- LISTE COMPLÈTE DES PLAGES (Coordonnées recalibrées) ---
 BEACHES = [
     # Côte Sauvage (Sud)
-    {"name": "Anse des Soux", "lat": 46.7011, "lon": -2.3165, "good": ["N", "NE", "E", "NO"], "bad": ["S", "SO", "O"]},
-    {"name": "Plage des Vieilles", "lat": 46.7032, "lon": -2.3019, "good": ["N", "NE", "E", "NO"], "bad": ["S", "SO", "SE"]},
-    {"name": "Plage de la Grande Conche", "lat": 46.6990, "lon": -2.3000, "good": ["N", "NO", "O"], "bad": ["S", "SE", "E"]},
-    {"name": "Plage des Petites Conches", "lat": 46.6970, "lon": -2.2980, "good": ["N", "NO", "O"], "bad": ["S", "SE", "E"]},
+    {"name": "Anse des Soux", "lat": 46.6910, "lon": -2.3240, "good": ["N", "NE", "E", "NO"], "bad": ["S", "SO", "O"]},
+    {"name": "Plage des Vieilles", "lat": 46.6950, "lon": -2.3155, "good": ["N", "NE", "E", "NO"], "bad": ["S", "SO", "SE"]},
+    {"name": "Plage de la Grande Conche", "lat": 46.6930, "lon": -2.3000, "good": ["N", "NO", "O"], "bad": ["S", "SE", "E"]},
+    {"name": "Plage des Petites Conches", "lat": 46.6940, "lon": -2.2980, "good": ["N", "NO", "O"], "bad": ["S", "SE", "E"]},
     
     # Pointe Est
-    {"name": "Plage des Corbeaux", "lat": 46.6961, "lon": -2.2939, "good": ["O", "NO", "SO"], "bad": ["E", "NE", "SE"]},
-    {"name": "Plage des Marais Salés", "lat": 46.7110, "lon": -2.3150, "good": ["S", "SO", "O"], "bad": ["N", "NE", "E"]},
+    {"name": "Plage des Corbeaux", "lat": 46.6960, "lon": -2.2930, "good": ["O", "NO", "SO"], "bad": ["E", "NE", "SE"]},
+    {"name": "Plage des Marais Salés", "lat": 46.7100, "lon": -2.3080, "good": ["S", "SO", "O"], "bad": ["N", "NE", "E"]},
     
     # Côte Nord-Est
-    {"name": "Plage de Ker Chalon", "lat": 46.7188, "lon": -2.3292, "good": ["S", "SO", "SE"], "bad": ["N", "NE", "E", "NO"]},
-    {"name": "Plage des Sapins", "lat": 46.7224, "lon": -2.3400, "good": ["S", "SO", "SE"], "bad": ["N", "NE", "E", "NO"]},
+    {"name": "Plage de Ker Chalon", "lat": 46.7188, "lon": -2.3382, "good": ["S", "SO", "SE"], "bad": ["N", "NE", "E", "NO"]},
+    {"name": "Plage des Sapins", "lat": 46.7172, "lon": -2.3162, "good": ["S", "SO", "SE"], "bad": ["N", "NE", "E", "NO"]},
     
     # Côte Nord / Pointe Nord-Ouest
-    {"name": "Plage de la Gournaise", "lat": 46.7289, "lon": -2.3673, "good": ["S", "SE", "SO"], "bad": ["N", "NE", "NO"]},
-    {"name": "Plage du But", "lat": 46.7210, "lon": -2.3880, "good": ["S", "SE", "E"], "bad": ["N", "NO", "O"]},
+    {"name": "Plage de la Gournaise", "lat": 46.7330, "lon": -2.3806, "good": ["S", "SE", "SO"], "bad": ["N", "NE", "NO"]},
+    {"name": "Plage du But", "lat": 46.7230, "lon": -2.3880, "good": ["S", "SE", "E"], "bad": ["N", "NO", "O"]},
     
     # Côte Ouest
     {"name": "Plage de la Belle Maison", "lat": 46.7081, "lon": -2.3844, "good": ["E", "NE", "SE"], "bad": ["O", "SO", "NO"]},
-    {"name": "Plage des Sabias", "lat": 46.7172, "lon": -2.3671, "good": ["E", "SE", "NE"], "bad": ["O", "NO", "SO"]},
+    {"name": "Plage des Sabias", "lat": 46.7028, "lon": -2.3761, "good": ["E", "SE", "NE"], "bad": ["O", "NO", "SO"]},
     {"name": "Plage des Sables Roux", "lat": 46.7130, "lon": -2.3780, "good": ["E", "SE", "NE"], "bad": ["O", "NO", "SO"]}
 ]
 
-# Quadrillage de flèches sur toute l'île
+# Quadrillage de flèches sur toute l'île pour visualiser le vent
 WIND_POINTS = [
     {"lat": 46.728, "lon": -2.351}, {"lat": 46.721, "lon": -2.388},
     {"lat": 46.695, "lon": -2.292}, {"lat": 46.710, "lon": -2.330},
@@ -168,6 +168,7 @@ try:
                 popup=folium.Popup(popup_html, max_width=250)
             ).add_to(m)
 
+        # Animation fluide des flèches de vent
         wind_towards = (wind_deg + 180) % 360
         for pt in WIND_POINTS:
             svg = f"""
