@@ -18,18 +18,40 @@ START_POINTS = {
     "Port de la Meule": {"lat": 46.6970, "lon": -2.3190}
 }
 
+# --- LISTE COMPLÈTE DES PLAGES ---
 BEACHES = [
-    {"name": "Anse des Soux (Côte Sauvage)", "lat": 46.7080, "lon": -2.3680, "good": ["N", "NE", "E"], "bad": ["S", "SO", "O"]},
-    {"name": "Plage des Vieilles (Côte Sauvage)", "lat": 46.6990, "lon": -2.3450, "good": ["N", "NE", "E", "NO"], "bad": ["S", "SO", "SE"]},
-    {"name": "Plage de Ker Chalon (Nord-Est)", "lat": 46.7210, "lon": -2.3300, "good": ["S", "SO", "SE"], "bad": ["N", "NE", "E", "NO"]},
-    {"name": "Plage des Sabias (Nord-Ouest)", "lat": 46.7220, "lon": -2.3780, "good": ["S", "SE", "E"], "bad": ["N", "NO", "O"]},
-    {"name": "Plage des Corbeaux (Est)", "lat": 46.6950, "lon": -2.2920, "good": ["O", "NO", "SO"], "bad": ["E", "NE", "SE"]}
+    # Côte Sauvage (Sud)
+    {"name": "Anse des Soux", "lat": 46.7011, "lon": -2.3165, "good": ["N", "NE", "E", "NO"], "bad": ["S", "SO", "O"]},
+    {"name": "Plage des Vieilles", "lat": 46.7032, "lon": -2.3019, "good": ["N", "NE", "E", "NO"], "bad": ["S", "SO", "SE"]},
+    {"name": "Plage de la Grande Conche", "lat": 46.6990, "lon": -2.3000, "good": ["N", "NO", "O"], "bad": ["S", "SE", "E"]},
+    {"name": "Plage des Petites Conches", "lat": 46.6970, "lon": -2.2980, "good": ["N", "NO", "O"], "bad": ["S", "SE", "E"]},
+    
+    # Pointe Est
+    {"name": "Plage des Corbeaux", "lat": 46.6961, "lon": -2.2939, "good": ["O", "NO", "SO"], "bad": ["E", "NE", "SE"]},
+    {"name": "Plage des Marais Salés", "lat": 46.7110, "lon": -2.3150, "good": ["S", "SO", "O"], "bad": ["N", "NE", "E"]},
+    
+    # Côte Nord-Est
+    {"name": "Plage de Ker Chalon", "lat": 46.7188, "lon": -2.3292, "good": ["S", "SO", "SE"], "bad": ["N", "NE", "E", "NO"]},
+    {"name": "Plage des Sapins", "lat": 46.7224, "lon": -2.3400, "good": ["S", "SO", "SE"], "bad": ["N", "NE", "E", "NO"]},
+    
+    # Côte Nord / Pointe Nord-Ouest
+    {"name": "Plage de la Gournaise", "lat": 46.7289, "lon": -2.3673, "good": ["S", "SE", "SO"], "bad": ["N", "NE", "NO"]},
+    {"name": "Plage du But", "lat": 46.7210, "lon": -2.3880, "good": ["S", "SE", "E"], "bad": ["N", "NO", "O"]},
+    
+    # Côte Ouest
+    {"name": "Plage de la Belle Maison", "lat": 46.7081, "lon": -2.3844, "good": ["E", "NE", "SE"], "bad": ["O", "SO", "NO"]},
+    {"name": "Plage des Sabias", "lat": 46.7172, "lon": -2.3671, "good": ["E", "SE", "NE"], "bad": ["O", "NO", "SO"]},
+    {"name": "Plage des Sables Roux", "lat": 46.7130, "lon": -2.3780, "good": ["E", "SE", "NE"], "bad": ["O", "NO", "SO"]}
 ]
 
+# Quadrillage de flèches sur toute l'île
 WIND_POINTS = [
-    {"name": "Port-Joinville", "lat": 46.7280, "lon": -2.3510, "factor": 1.0},
-    {"name": "Pointe du But", "lat": 46.7210, "lon": -2.3880, "factor": 1.2}, 
-    {"name": "Pointe des Corbeaux", "lat": 46.6950, "lon": -2.2920, "factor": 1.1},
+    {"lat": 46.728, "lon": -2.351}, {"lat": 46.721, "lon": -2.388},
+    {"lat": 46.695, "lon": -2.292}, {"lat": 46.710, "lon": -2.330},
+    {"lat": 46.700, "lon": -2.319}, {"lat": 46.718, "lon": -2.360},
+    {"lat": 46.705, "lon": -2.350}, {"lat": 46.710, "lon": -2.300},
+    {"lat": 46.735, "lon": -2.330}, {"lat": 46.685, "lon": -2.330},
+    {"lat": 46.715, "lon": -2.310}, {"lat": 46.705, "lon": -2.375},
 ]
 
 def haversine_distance(lat1, lon1, lat2, lon2):
@@ -46,7 +68,6 @@ def calculate_times(distance_km):
 
 @st.cache_data(ttl=3600)
 def fetch_weather(date_str):
-    # Appel simplifié uniquement pour le vent et la température (très fiable)
     w_url = f"https://api.open-meteo.com/v1/forecast?latitude={LATITUDE}&longitude={LONGITUDE}&hourly=temperature_2m,wind_speed_10m,wind_direction_10m&timezone=Europe/Paris&start_date={date_str}&end_date={date_str}"
     res = requests.get(w_url).json()
     if "error" in res:
@@ -54,7 +75,6 @@ def fetch_weather(date_str):
     return res["hourly"]
 
 def generate_mock_tide(date_str):
-    # Simulation mathématique interne pour éviter les crashs de l'API externe
     base_time = datetime.datetime.strptime(date_str, "%Y-%m-%d")
     times = [(base_time + datetime.timedelta(hours=i)).strftime("%Y-%m-%dT%H:00") for i in range(24)]
     heights = [3.0 + 2.0 * math.sin((i - 4) * math.pi / 6.2) for i in range(24)]
@@ -150,8 +170,22 @@ try:
 
         wind_towards = (wind_deg + 180) % 360
         for pt in WIND_POINTS:
-            l_speed = round(wind_speed * pt["factor"], 1)
-            svg = f'<div style="transform: rotate({wind_towards}deg); width: 20px;"><svg viewBox="0 0 24 24" width="20" height="20" stroke="gray" stroke-width="2" fill="none"><line x1="12" y1="19" x2="12" y2="5"></line><polyline points="5 12 12 5 19 12"></polyline></svg></div>'
+            svg = f"""
+            <style>
+                @keyframes windBlow {{
+                    0% {{ transform: translateY(8px); opacity: 0; }}
+                    40% {{ opacity: 1; }}
+                    60% {{ opacity: 1; }}
+                    100% {{ transform: translateY(-8px); opacity: 0; }}
+                }}
+            </style>
+            <div style="transform: rotate({wind_towards}deg); width: 24px; height: 24px;">
+                <svg viewBox="0 0 24 24" width="24" height="24" stroke="rgba(100, 100, 100, 0.7)" stroke-width="2.5" fill="none" style="animation: windBlow 1.5s infinite linear;">
+                    <line x1="12" y1="19" x2="12" y2="5"></line>
+                    <polyline points="7 10 12 5 17 10"></polyline>
+                </svg>
+            </div>
+            """
             folium.Marker(location=[pt["lat"], pt["lon"]], icon=folium.DivIcon(html=svg)).add_to(m)
 
         st_folium(m, width=600, height=350)
@@ -175,7 +209,7 @@ try:
             - Marée : {current_height:.2f} m ({tide_state}). Régime : {tide_category}.
             
             Mission : Rédige une analyse concise et de haut niveau en 3 points :
-            1. Plage idéale : Confirme la meilleure option parmi celles qui sont abritées du vent actuel.
+            1. Plage idéale : Confirme la meilleure option parmi celles qui sont abritées du vent actuel (parmi la liste complète des plages de l'île).
             2. Trajet depuis {start_point_name} : Un bref commentaire sur l'accessibilité ou le vent de face au retour en fonction de l'activité choisie.
             3. Sécurité / Ambiance : Un conseil spécifique lié à l'activité sélectionnée.
             """
