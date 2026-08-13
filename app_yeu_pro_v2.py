@@ -49,11 +49,21 @@ def calculate_times(distance_km):
 
 @st.cache_data(ttl=3600)
 def fetch_weather_and_marine(date_str):
+    # Requête Météo (Terre)
     w_url = f"https://api.open-meteo.com/v1/forecast?latitude={LATITUDE}&longitude={LONGITUDE}&hourly=temperature_2m,wind_speed_10m,wind_direction_10m&timezone=Europe/Paris&start_date={date_str}&end_date={date_str}"
-    res_w = requests.get(w_url).json()["hourly"]
-    m_url = f"https://marine-api.open-meteo.com/v1/marine?latitude={LATITUDE}&longitude={LONGITUDE}&hourly=sea_surface_height_above_sea_level&timezone=Europe/Paris&start_date={date_str}&end_date={date_str}"
-    res_m = requests.get(m_url).json()["hourly"]
-    return res_w, res_m
+    res_w = requests.get(w_url).json()
+    
+    # Requête Marée (Décalée légèrement en mer à l'Ouest pour éviter le bug de la "terre ferme")
+    LAT_MER, LON_MER = 46.72, -2.40
+    m_url = f"https://marine-api.open-meteo.com/v1/marine?latitude={LAT_MER}&longitude={LON_MER}&hourly=sea_surface_height_above_sea_level&timezone=Europe/Paris&start_date={date_str}&end_date={date_str}"
+    res_m = requests.get(m_url).json()
+    
+    if "error" in res_w:
+        raise Exception(f"Erreur Météo : {res_w.get('reason')}")
+    if "error" in res_m:
+        raise Exception(f"Erreur Marée : {res_m.get('reason')}")
+        
+    return res_w["hourly"], res_m["hourly"]
 
 # --- CONFIGURATION INTERFACE ---
 st.set_page_config(page_title="Plages Île d'Yeu - PRO", page_icon="🏝️", layout="wide")
