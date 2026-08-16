@@ -1,62 +1,136 @@
-import streamlit as st
+import os
+import requests
 import datetime
 import math
+import matplotlib.subplots as plt_sub
 import matplotlib.pyplot as plt
+import streamlit as st
 import folium
 from streamlit_folium import st_folium
-import requests
 
-# Configuration initiale
+# --- CONFIGURATION ---
 LATITUDE, LONGITUDE = 46.7236, -2.3503
+MARINE_LAT, MARINE_LON = 46.7000, -2.4500 
+
 START_POINTS = {
     "Port-Joinville": {"lat": 46.7280, "lon": -2.3510},
     "Saint-Sauveur": {"lat": 46.7110, "lon": -2.3300},
     "Port de la Meule": {"lat": 46.6970, "lon": -2.3190}
 }
 
-# --- MATRICE D'EXPOSITION (Règle : "good" = plages abritées du vent actuel) ---
 BEACHES = [
-    {"name": "Anse des Soux", "lat": 46.6910, "lon": -2.3209, "good": ["N", "NE", "E"], "bad": ["S", "SO", "O"]},
-    {"name": "Plage des Vieilles", "lat": 46.6957, "lon": -2.3137, "good": ["N", "NE", "E"], "bad": ["S", "SO", "O"]},
-    {"name": "Grande Conche", "lat": 46.6946, "lon": -2.2850, "good": ["N", "NE", "E"], "bad": ["S", "SO", "O"]},
-    {"name": "Petite Conche", "lat": 46.7065, "lon": -2.2991, "good": ["N", "NE", "E"], "bad": ["S", "SO", "O"]},
-    {"name": "Plage des Corbeaux", "lat": 46.6908, "lon": -2.2820, "good": ["S", "SO", "O"], "bad": ["N", "NE", "E"]},
+    {"name": "Anse des Soux", "lat": 46.6910, "lon": -2.3209, "good": ["N", "NE", "E", "NO"], "bad": ["S", "SO", "O"]},
+    {"name": "Plage des Vieilles", "lat": 46.6957, "lon": -2.3137, "good": ["N", "NE", "E", "NO"], "bad": ["S", "SO", "SE"]},
+    {"name": "Grande Conche", "lat": 46.6946, "lon": -2.2850, "good": ["N", "NO", "O"], "bad": ["S", "SE", "E"]},
+    {"name": "Petite Conche", "lat": 46.7065, "lon": -2.2991, "good": ["N", "NO", "O"], "bad": ["S", "SE", "E"]},
+    {"name": "Plage des Corbeaux", "lat": 46.6908, "lon": -2.2820, "good": ["O", "NO", "SO"], "bad": ["E", "NE", "SE"]},
     {"name": "Marais Salés", "lat": 46.7127, "lon": -2.3103, "good": ["S", "SO", "O"], "bad": ["N", "NE", "E"]},
-    {"name": "Ker Châlon", "lat": 46.7196, "lon": -2.3351, "good": ["S", "SO", "O"], "bad": ["N", "NE", "E"]},
-    {"name": "Plage des Sapins", "lat": 46.7174, "lon": -2.3159, "good": ["S", "SO", "O"], "bad": ["N", "NE", "E"]},
+    {"name": "Ker Châlon", "lat": 46.7196, "lon": -2.3351, "good": ["S", "SO", "SE"], "bad": ["N", "NE", "E", "NO"]},
+    {"name": "Plage des Sapins", "lat": 46.7174, "lon": -2.3159, "good": ["S", "SO", "SE"], "bad": ["N", "NE", "E", "NO"]},
     {"name": "Anse des Fontaines", "lat": 46.6895, "lon": -2.3334, "good": ["N", "NE", "E"], "bad": ["S", "SO", "O"]},
-    {"name": "Plage de la Gournaise", "lat": 46.7337, "lon": -2.3809, "good": ["S", "SE", "E"], "bad": ["N", "NO", "O"]},
+    {"name": "Plage de la Gournaise", "lat": 46.7337, "lon": -2.3809, "good": ["S", "SE", "SO"], "bad": ["N", "NE", "NO"]},
     {"name": "Plage du But", "lat": 46.7257, "lon": -2.3969, "good": ["S", "SE", "E"], "bad": ["N", "NO", "O"]},
-    {"name": "Plage des Sabias", "lat": 46.7034, "lon": -2.3739, "good": ["S", "SO", "O"], "bad": ["N", "NE", "E"]}
+    {"name": "Plage des Sabias", "lat": 46.7034, "lon": -2.3739, "good": ["E", "SE", "NE"], "bad": ["O", "NO", "SO"]}
 ]
 
-# Fonction de marée fixe et fiable
-def get_tide_height(hour):
-    return 2.94 + 2.06 * math.cos((hour - 7.46) * 2 * math.pi / 12.4)
+WIND_POINTS = [
+    {"lat": 46.728, "lon": -2.351}, {"lat": 46.721, "lon": -2.388},
+    {"lat": 46.695, "lon": -2.292}, {"lat": 46.710, "lon": -2.330},
+    {"lat": 46.700, "lon": -2.319}, {"lat": 46.718, "lon": -2.360},
+    {"lat": 46.705, "lon": -2.350}, {"lat": 46.710, "lon": -2.300},
+    {"lat": 46.735, "lon": -2.330}, {"lat": 46.685, "lon": -2.330}
+]
 
-st.set_page_config(page_title="Plages Yeu", layout="wide")
+# --- DESIGN DES POUCES (Vecteurs purs pour couleurs parfaites) ---
+svg_up = '''<div style="filter: drop-shadow(2px 2px 2px rgba(0,0,0,0.5)); width:28px; height:28px;"><svg viewBox="0 0 24 24" fill="#28a745" stroke="white" stroke-width="1"><path d="M2 20h2c.55 0 1-.45 1-1v-9c0-.55-.45-1-1-1H2v11zm19.83-7.12c.11-.25.17-.52.17-.8V11c0-1.1-.9-2-2-2h-5.5l.92-4.65c.05-.22.02-.46-.1-.66-.12-.21-.31-.37-.53-.46-.22-.1-.47-.11-.7-.03L9.67 6H7v14h11.28c.84 0 1.58-.5 1.87-1.25l2.68-7.87z"/></svg></div>'''
+svg_down = '''<div style="filter: drop-shadow(2px 2px 2px rgba(0,0,0,0.5)); width:28px; height:28px;"><svg viewBox="0 0 24 24" fill="#dc3545" stroke="white" stroke-width="1"><path d="M22 4h-2c-.55 0-1 .45-1 1v9c0 .55.45 1 1 1h2V4zM2.17 11.12c-.11.25-.17.52-.17.8V13c0 1.1.9 2 2 2h5.5l-.92 4.65c-.05.22-.02.46.1.66.12.21.31.37.53.46.22.1.47.11.7.03L14.33 18H17V4H5.72c-.84 0-1.58.5-1.87 1.25L1.17 11.12z"/></svg></div>'''
+svg_right = '''<div style="filter: drop-shadow(2px 2px 2px rgba(0,0,0,0.5)); transform: rotate(90deg); width:28px; height:28px;"><svg viewBox="0 0 24 24" fill="#fd7e14" stroke="white" stroke-width="1"><path d="M2 20h2c.55 0 1-.45 1-1v-9c0-.55-.45-1-1-1H2v11zm19.83-7.12c.11-.25.17-.52.17-.8V11c0-1.1-.9-2-2-2h-5.5l.92-4.65c.05-.22.02-.46-.1-.66-.12-.21-.31-.37-.53-.46-.22-.1-.47-.11-.7-.03L9.67 6H7v14h11.28c.84 0 1.58-.5 1.87-1.25l2.68-7.87z"/></svg></div>'''
+
+def haversine(lat1, lon1, lat2, lon2):
+    R = 6371
+    dLat, dLon = math.radians(lat2-lat1), math.radians(lon2-lon1)
+    a = math.sin(dLat/2)**2 + math.cos(math.radians(lat1))*math.cos(math.radians(lat2))*math.sin(dLon/2)**2
+    return R * (2 * math.asin(math.sqrt(a)))
+
+st.set_page_config(page_title="Plages Yeu PRO", layout="wide")
 st.title("🏝️ Plages Idéales - Île d'Yeu")
 
-# Météo
-url = f"https://api.open-meteo.com/v1/forecast?latitude={LATITUDE}&longitude={LONGITUDE}&hourly=wind_speed_10m,wind_direction_10m&timezone=Europe/Paris&start_date={datetime.date.today()}&end_date={datetime.date.today()}"
-w = requests.get(url).json()["hourly"]
-hour = datetime.datetime.now().hour
-ws, wd = w["wind_speed_10m"][hour], w["wind_direction_10m"][hour]
-card = ["N", "NE", "E", "SE", "S", "SO", "O", "NO"][round(wd / 45) % 8]
+start_name = st.sidebar.selectbox("📍 Départ", list(START_POINTS.keys()))
+transport = st.sidebar.radio("🚲 Moyen de transport", ["Vélo", "Voiture"])
+time_now = datetime.datetime.now().hour
 
-# Affichage
+# Récupération Météo
+url_weather = f"https://api.open-meteo.com/v1/forecast?latitude={LATITUDE}&longitude={LONGITUDE}&hourly=temperature_2m,wind_speed_10m,wind_direction_10m,sea_surface_temperature&timezone=Europe/Paris&start_date={datetime.date.today()}&end_date={datetime.date.today()}"
+w = requests.get(url_weather).json()["hourly"]
+t, w_t, w_s, d = w["temperature_2m"][time_now], w["sea_surface_temperature"][time_now], w["wind_speed_10m"][time_now], w["wind_direction_10m"][time_now]
+card = ["N", "NE", "E", "SE", "S", "SO", "O", "NO"][round(d / 45) % 8]
+
+# Dynamique d'intensité du vent : Plus w_s est élevé, plus le chiffre (durée) est petit (rapide).
+anim_speed = max(0.4, 40.0 / max(w_s, 1))
+
+# Récupération Marée
+try:
+    url_marine = f"https://marine-api.open-meteo.com/v1/marine?latitude={MARINE_LAT}&longitude={MARINE_LON}&hourly=sea_surface_height_above_sea_level&timezone=Europe/Paris&start_date={datetime.date.today()}&end_date={datetime.date.today()}"
+    m_data = requests.get(url_marine).json()["hourly"]
+    heights = m_data["sea_surface_height_above_sea_level"]
+except:
+    heights = [3.0 + 2.0 * math.sin((i - 4) * math.pi / 6.2) for i in range(24)]
+
 col1, col2 = st.columns([1.5, 1])
 
 with col1:
-    m = folium.Map(location=[46.72, -2.35], zoom_start=13, tiles="CartoDB positron")
+    st.subheader("🗺️ Carte de l'île")
+    m_map = folium.Map(location=[46.72, -2.35], zoom_start=13, tiles="CartoDB positron")
+    
+    # Plages avec nos nouveaux Pouces
     for b in BEACHES:
-        icon, color = ("👍", "green") if card in b["good"] else (("👎", "red") if card in b["bad"] else ("✋", "orange"))
-        folium.Marker([b["lat"], b["lon"]], icon=folium.DivIcon(html=f'<div style="font-size:20px; color:{color};"><b>{icon}</b></div>'), popup=b["name"]).add_to(m)
-    st_folium(m, width="100%", height=500)
+        if card in b["good"]: icon_html, status = svg_up, "Recommandée"
+        elif card in b["bad"]: icon_html, status = svg_down, "Déconseillée"
+        else: icon_html, status = svg_right, "Moyenne"
+        
+        dist = haversine(START_POINTS[start_name]["lat"], START_POINTS[start_name]["lon"], b["lat"], b["lon"])
+        speed = 14 if transport == "Vélo" else 30
+        popup_text = f"<b>{b['name']}</b><br>{status}<br>{int(dist*1.3/speed*60)} min en {transport}"
+        
+        folium.Marker(
+            location=[b["lat"], b["lon"]],
+            icon=folium.DivIcon(html=icon_html),
+            popup=folium.Popup(popup_text, max_width=150)
+        ).add_to(m_map)
+    
+    # Vent Animé (Sens + Vitesse adaptative)
+    wind_towards = (d + 180) % 360
+    for pt in WIND_POINTS:
+        svg_wind = f"""
+        <style>
+            @keyframes windBlow {{
+                0% {{ transform: translateY(10px); opacity: 0; }}
+                20% {{ opacity: 1; }}
+                80% {{ opacity: 1; }}
+                100% {{ transform: translateY(-10px); opacity: 0; }}
+            }}
+        </style>
+        <div style="transform: rotate({wind_towards}deg);">
+            <svg viewBox="0 0 24 24" width="24" height="24" style="animation: windBlow {anim_speed}s infinite linear;">
+                <path d="M12 21 V3 M5 10 L12 3 L19 10" stroke="#005580" stroke-width="2.5" fill="none" stroke-linecap="round" stroke-linejoin="round"/>
+            </svg>
+        </div>"""
+        folium.Marker(location=[pt["lat"], pt["lon"]], icon=folium.DivIcon(html=svg_wind)).add_to(m_map)
+
+    st_folium(m_map, width="100%", height=500)
 
 with col2:
-    st.write(f"💨 Vent : **{ws} km/h** ({card})")
+    st.subheader("📊 Conditions et Marées")
+    st.write(f"🌡️ Air : **{t}°C** | 💧 Eau : **{w_t}°C**")
+    st.write(f"💨 Vent : **{w_s} km/h** (Orientation : **{card}**)")
+    st.caption("ℹ️ Source eau : Programme spatial Copernicus")
+    
     fig, ax = plt.subplots(figsize=(6, 3))
-    ax.plot(range(24), [get_tide_height(h) for h in range(24)])
-    ax.scatter(hour, get_tide_height(hour), color="red")
+    ax.plot(range(24), heights, color="#0288d1", linewidth=2)
+    ax.scatter(time_now, heights[time_now], color="red", zorder=5, s=80)
+    ax.axvline(x=time_now, color='red', linestyle='--', alpha=0.5)
+    ax.set_title("Cycle de la Marée (Heure actuelle en rouge)")
+    ax.set_xlabel("Heure de la journée")
+    ax.set_ylabel("Hauteur (m)")
+    ax.grid(True, linestyle="--", alpha=0.4)
     st.pyplot(fig)
