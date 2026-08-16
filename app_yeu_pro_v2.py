@@ -9,8 +9,6 @@ from streamlit_folium import st_folium
 
 # --- CONFIGURATION ---
 LATITUDE, LONGITUDE = 46.7236, -2.3503
-MARINE_LAT, MARINE_LON = 46.7000, -2.4500 
-
 START_POINTS = {
     "Port-Joinville": {"lat": 46.7280, "lon": -2.3510},
     "Saint-Sauveur": {"lat": 46.7110, "lon": -2.3300},
@@ -22,7 +20,7 @@ BEACHES = [
     {"name": "Plage des Vieilles", "lat": 46.6957, "lon": -2.3137, "good": ["N", "NE", "E", "NO"], "bad": ["S", "SO", "SE"]},
     {"name": "Grande Conche", "lat": 46.6946, "lon": -2.2850, "good": ["N", "NO", "O"], "bad": ["S", "SE", "E"]},
     {"name": "Petite Conche", "lat": 46.7065, "lon": -2.2991, "good": ["N", "NO", "O"], "bad": ["S", "SE", "E"]},
-    {"name": "Plage des Corbeaux", "lat": 46.6908, "lon": -2.2820, "good": ["O", "NO", "SO"], "bad": ["E", "NE", "SE"]},
+    {"name": "Plage des Corbeaux", "lat": 46.6960, "lon": -2.2930, "good": ["O", "NO", "SO"], "bad": ["E", "NE", "SE"]},
     {"name": "Marais Salés", "lat": 46.7127, "lon": -2.3103, "good": ["S", "SO", "O"], "bad": ["N", "NE", "E"]},
     {"name": "Ker Châlon", "lat": 46.7196, "lon": -2.3351, "good": ["S", "SO", "SE"], "bad": ["N", "NE", "E", "NO"]},
     {"name": "Plage des Sapins", "lat": 46.7174, "lon": -2.3159, "good": ["S", "SO", "SE"], "bad": ["N", "NE", "E", "NO"]},
@@ -31,19 +29,6 @@ BEACHES = [
     {"name": "Plage du But", "lat": 46.7257, "lon": -2.3969, "good": ["S", "SE", "E"], "bad": ["N", "NO", "O"]},
     {"name": "Plage des Sabias", "lat": 46.7034, "lon": -2.3739, "good": ["E", "SE", "NE"], "bad": ["O", "NO", "SO"]}
 ]
-
-WIND_POINTS = [
-    {"lat": 46.728, "lon": -2.351}, {"lat": 46.721, "lon": -2.388},
-    {"lat": 46.695, "lon": -2.292}, {"lat": 46.710, "lon": -2.330},
-    {"lat": 46.700, "lon": -2.319}, {"lat": 46.718, "lon": -2.360},
-    {"lat": 46.705, "lon": -2.350}, {"lat": 46.710, "lon": -2.300},
-    {"lat": 46.735, "lon": -2.330}, {"lat": 46.685, "lon": -2.330}
-]
-
-# --- DESIGN DES POUCES (Vecteurs purs pour couleurs parfaites) ---
-svg_up = '''<div style="filter: drop-shadow(2px 2px 2px rgba(0,0,0,0.5)); width:28px; height:28px;"><svg viewBox="0 0 24 24" fill="#28a745" stroke="white" stroke-width="1"><path d="M2 20h2c.55 0 1-.45 1-1v-9c0-.55-.45-1-1-1H2v11zm19.83-7.12c.11-.25.17-.52.17-.8V11c0-1.1-.9-2-2-2h-5.5l.92-4.65c.05-.22.02-.46-.1-.66-.12-.21-.31-.37-.53-.46-.22-.1-.47-.11-.7-.03L9.67 6H7v14h11.28c.84 0 1.58-.5 1.87-1.25l2.68-7.87z"/></svg></div>'''
-svg_down = '''<div style="filter: drop-shadow(2px 2px 2px rgba(0,0,0,0.5)); width:28px; height:28px;"><svg viewBox="0 0 24 24" fill="#dc3545" stroke="white" stroke-width="1"><path d="M22 4h-2c-.55 0-1 .45-1 1v9c0 .55.45 1 1 1h2V4zM2.17 11.12c-.11.25-.17.52-.17.8V13c0 1.1.9 2 2 2h5.5l-.92 4.65c-.05.22-.02.46.1.66.12.21.31.37.53.46.22.1.47.11.7.03L14.33 18H17V4H5.72c-.84 0-1.58.5-1.87 1.25L1.17 11.12z"/></svg></div>'''
-svg_right = '''<div style="filter: drop-shadow(2px 2px 2px rgba(0,0,0,0.5)); transform: rotate(90deg); width:28px; height:28px;"><svg viewBox="0 0 24 24" fill="#fd7e14" stroke="white" stroke-width="1"><path d="M2 20h2c.55 0 1-.45 1-1v-9c0-.55-.45-1-1-1H2v11zm19.83-7.12c.11-.25.17-.52.17-.8V11c0-1.1-.9-2-2-2h-5.5l.92-4.65c.05-.22.02-.46-.1-.66-.12-.21-.31-.37-.53-.46-.22-.1-.47-.11-.7-.03L9.67 6H7v14h11.28c.84 0 1.58-.5 1.87-1.25l2.68-7.87z"/></svg></div>'''
 
 def haversine(lat1, lon1, lat2, lon2):
     R = 6371
@@ -54,82 +39,45 @@ def haversine(lat1, lon1, lat2, lon2):
 st.set_page_config(page_title="Plages Yeu PRO", layout="wide")
 st.title("🏝️ Plages Idéales - Île d'Yeu")
 
+# Sidebar
 start_name = st.sidebar.selectbox("📍 Départ", list(START_POINTS.keys()))
 transport = st.sidebar.radio("🚲 Moyen de transport", ["Vélo", "Voiture"])
+date = st.date_input("📅 Date", datetime.date.today())
 time_now = datetime.datetime.now().hour
 
-# Récupération Météo
-url_weather = f"https://api.open-meteo.com/v1/forecast?latitude={LATITUDE}&longitude={LONGITUDE}&hourly=temperature_2m,wind_speed_10m,wind_direction_10m,sea_surface_temperature&timezone=Europe/Paris&start_date={datetime.date.today()}&end_date={datetime.date.today()}"
-w = requests.get(url_weather).json()["hourly"]
+# Data
+url = f"https://api.open-meteo.com/v1/forecast?latitude={LATITUDE}&longitude={LONGITUDE}&hourly=temperature_2m,wind_speed_10m,wind_direction_10m,sea_surface_temperature&timezone=Europe/Paris&start_date={date}&end_date={date}"
+w = requests.get(url).json()["hourly"]
 t, w_t, w_s, d = w["temperature_2m"][time_now], w["sea_surface_temperature"][time_now], w["wind_speed_10m"][time_now], w["wind_direction_10m"][time_now]
 card = ["N", "NE", "E", "SE", "S", "SO", "O", "NO"][round(d / 45) % 8]
 
-# Dynamique d'intensité du vent : Plus w_s est élevé, plus le chiffre (durée) est petit (rapide).
-anim_speed = max(0.4, 40.0 / max(w_s, 1))
-
-# Récupération Marée
-try:
-    url_marine = f"https://marine-api.open-meteo.com/v1/marine?latitude={MARINE_LAT}&longitude={MARINE_LON}&hourly=sea_surface_height_above_sea_level&timezone=Europe/Paris&start_date={datetime.date.today()}&end_date={datetime.date.today()}"
-    m_data = requests.get(url_marine).json()["hourly"]
-    heights = m_data["sea_surface_height_above_sea_level"]
-except:
-    heights = [3.0 + 2.0 * math.sin((i - 4) * math.pi / 6.2) for i in range(24)]
-
-col1, col2 = st.columns([1.5, 1])
+col1, col2 = st.columns([1, 1.5])
 
 with col1:
-    st.subheader("🗺️ Carte de l'île")
-    m_map = folium.Map(location=[46.72, -2.35], zoom_start=13, tiles="CartoDB positron")
+    st.subheader("📊 Conditions")
+    st.write(f"🌡️ Air: {t}°C | 💧 Eau: {w_t}°C | 💨 {w_s} km/h ({card})")
     
-    # Plages avec nos nouveaux Pouces
-    for b in BEACHES:
-        if card in b["good"]: icon_html, status = svg_up, "Recommandée"
-        elif card in b["bad"]: icon_html, status = svg_down, "Déconseillée"
-        else: icon_html, status = svg_right, "Moyenne"
-        
-        dist = haversine(START_POINTS[start_name]["lat"], START_POINTS[start_name]["lon"], b["lat"], b["lon"])
-        speed = 14 if transport == "Vélo" else 30
-        popup_text = f"<b>{b['name']}</b><br>{status}<br>{int(dist*1.3/speed*60)} min en {transport}"
-        
-        folium.Marker(
-            location=[b["lat"], b["lon"]],
-            icon=folium.DivIcon(html=icon_html),
-            popup=folium.Popup(popup_text, max_width=150)
-        ).add_to(m_map)
-    
-    # Vent Animé (Sens + Vitesse adaptative)
-    wind_towards = (d + 180) % 360
-    for pt in WIND_POINTS:
-        svg_wind = f"""
-        <style>
-            @keyframes windBlow {{
-                0% {{ transform: translateY(10px); opacity: 0; }}
-                20% {{ opacity: 1; }}
-                80% {{ opacity: 1; }}
-                100% {{ transform: translateY(-10px); opacity: 0; }}
-            }}
-        </style>
-        <div style="transform: rotate({wind_towards}deg);">
-            <svg viewBox="0 0 24 24" width="24" height="24" style="animation: windBlow {anim_speed}s infinite linear;">
-                <path d="M12 21 V3 M5 10 L12 3 L19 10" stroke="#005580" stroke-width="2.5" fill="none" stroke-linecap="round" stroke-linejoin="round"/>
-            </svg>
-        </div>"""
-        folium.Marker(location=[pt["lat"], pt["lon"]], icon=folium.DivIcon(html=svg_wind)).add_to(m_map)
-
-    st_folium(m_map, width="100%", height=500)
+    # Marée avec point rouge
+    heights = [3.0 + 2.0 * math.sin((i - 4) * math.pi / 6.2) for i in range(24)]
+    fig, ax = plt.subplots(figsize=(6, 3))
+    ax.plot(range(24), heights, color="#0288d1")
+    ax.scatter(time_now, heights[time_now], color="red", zorder=5) # Point rouge
+    ax.set_title("Cycle Marée (Red = Maintenant)")
+    st.pyplot(fig)
 
 with col2:
-    st.subheader("📊 Conditions et Marées")
-    st.write(f"🌡️ Air : **{t}°C** | 💧 Eau : **{w_t}°C**")
-    st.write(f"💨 Vent : **{w_s} km/h** (Orientation : **{card}**)")
-    st.caption("ℹ️ Source eau : Programme spatial Copernicus")
+    st.subheader("🗺️ Carte")
+    m = folium.Map(location=[46.72, -2.35], zoom_start=13, tiles="CartoDB positron")
     
-    fig, ax = plt.subplots(figsize=(6, 3))
-    ax.plot(range(24), heights, color="#0288d1", linewidth=2)
-    ax.scatter(time_now, heights[time_now], color="red", zorder=5, s=80)
-    ax.axvline(x=time_now, color='red', linestyle='--', alpha=0.5)
-    ax.set_title("Cycle de la Marée (Heure actuelle en rouge)")
-    ax.set_xlabel("Heure de la journée")
-    ax.set_ylabel("Hauteur (m)")
-    ax.grid(True, linestyle="--", alpha=0.4)
-    st.pyplot(fig)
+    for b in BEACHES:
+        emoji, color = ("😊", "green") if card in b["good"] else (("☹️", "red") if card in b["bad"] else ("😐", "orange"))
+        dist = haversine(START_POINTS[start_name]["lat"], START_POINTS[start_name]["lon"], b["lat"], b["lon"])
+        speed = 14 if transport == "Vélo" else 30
+        
+        popup_text = f"<b>{b['name']}</b><br>{emoji}<br>{int(dist*1.3/speed*60)} min en {transport}"
+        folium.Marker(
+            location=[b["lat"], b["lon"]],
+            icon=folium.DivIcon(html=f'<div style="font-size:20px; color:{color};">●</div>'),
+            popup=folium.Popup(popup_text, max_width=150)
+        ).add_to(m)
+    st_folium(m, width=800, height=500)
