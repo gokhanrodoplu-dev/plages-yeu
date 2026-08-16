@@ -1,15 +1,15 @@
-import os
-import requests
+import streamlit as st
 import datetime
 import math
 import matplotlib.pyplot as plt
-import streamlit as st
 import folium
 from streamlit_folium import st_folium
+import requests
 import streamlit.components.v1 as components
 
 # --- CONFIGURATION ---
 LATITUDE, LONGITUDE = 46.7236, -2.3503
+# Point GPS dans l'océan pour que l'API Marine ne plante pas
 MARINE_LAT, MARINE_LON = 46.7000, -2.4500 
 
 START_POINTS = {
@@ -18,7 +18,7 @@ START_POINTS = {
     "Port de la Meule": {"lat": 46.6970, "lon": -2.3190}
 }
 
-# J'ai remis votre logique de vent d'origine qui fonctionnait très bien !
+# J'ai restauré la configuration exacte d'origine
 BEACHES = [
     {"name": "Anse des Soux", "lat": 46.6910, "lon": -2.3209, "good": ["N", "NE", "E"], "bad": ["S", "SO", "O"]},
     {"name": "Plage des Vieilles", "lat": 46.6957, "lon": -2.3137, "good": ["N", "NE", "E", "NO"], "bad": ["S", "SO", "SE"]},
@@ -31,7 +31,7 @@ BEACHES = [
     {"name": "Anse des Fontaines", "lat": 46.6895, "lon": -2.3334, "good": ["N", "NE", "E"], "bad": ["S", "SO", "O"]},
     {"name": "Plage de la Gournaise", "lat": 46.7337, "lon": -2.3809, "good": ["S", "SE", "SO"], "bad": ["N", "NE", "NO"]},
     {"name": "Plage du But", "lat": 46.7257, "lon": -2.3969, "good": ["S", "SE", "E"], "bad": ["N", "NO", "O"]},
-    {"name": "Plage des Sabias", "lat": 46.7034, "lon": -2.3739, "good": ["S", "SE", "E"], "bad": ["N", "NO", "O"]}
+    {"name": "Plage des Sabias", "lat": 46.7034, "lon": -2.3739, "good": ["E", "SE", "NE"], "bad": ["O", "NO", "SO"]}
 ]
 
 WIND_POINTS = [
@@ -53,7 +53,7 @@ def haversine(lat1, lon1, lat2, lon2):
     a = math.sin(dLat/2)**2 + math.cos(math.radians(lat1))*math.cos(math.radians(lat2))*math.sin(dLon/2)**2
     return R * (2 * math.asin(math.sqrt(a)))
 
-# Gestion des paramètres GPS
+# Gestion du GPS Smartphone
 query_params = st.query_params
 if "lat" in query_params and "lon" in query_params:
     user_lat = float(query_params["lat"])
@@ -63,24 +63,27 @@ if "lat" in query_params and "lon" in query_params:
 st.set_page_config(page_title="Plages Yeu PRO", layout="wide")
 st.title("🏝️ Plages Idéales - Île d'Yeu")
 
-# Par défaut, on sélectionne "Ma Position GPS" si elle est disponible
 default_index = list(START_POINTS.keys()).index("📍 Ma Position GPS") if "📍 Ma Position GPS" in START_POINTS else 0
 start_name = st.sidebar.selectbox("Lieu de départ", list(START_POINTS.keys()), index=default_index)
-transport = st.sidebar.radio("🚲 Moyen de transport", ["Vélo musculaire", "Voiture"], index=0)
-
+transport = st.sidebar.radio("🚲 Moyen de transport", ["Vélo", "Voiture"], index=0)
 time_now = datetime.datetime.now().hour
+date_str = datetime.date.today().strftime("%Y-%m-%d")
 
-# Récupération Météo
-url_weather = f"https://api.open-meteo.com/v1/forecast?latitude={LATITUDE}&longitude={LONGITUDE}&hourly=temperature_2m,wind_speed_10m,wind_direction_10m,sea_surface_temperature&timezone=Europe/Paris&start_date={datetime.date.today()}&end_date={datetime.date.today()}"
+# 1. API Météo Classique
+url_weather = f"https://api.open-meteo.com/v1/forecast?latitude={LATITUDE}&longitude={LONGITUDE}&hourly=temperature_2m,wind_speed_10m,wind_direction_10m,sea_surface_temperature&timezone=Europe/Paris&start_date={date_str}&end_date={date_str}"
 w = requests.get(url_weather).json()["hourly"]
 t, w_t, w_s, d = w["temperature_2m"][time_now], w["sea_surface_temperature"][time_now], w["wind_speed_10m"][time_now], w["wind_direction_10m"][time_now]
 card = ["N", "NE", "E", "SE", "S", "SO", "O", "NO"][round(d / 45) % 8]
 anim_speed = max(0.4, 40.0 / max(w_s, 1))
 
-# Récupération Marée (Algorithme Harmonique)
-def get_tide_height(hour):
-    offset = 7.46 
-    return 3.0 + 2.1 * math.cos((hour - offset) * 2 * math.pi / 12.4)
+# 2. VRAIE API Marine pour la marée exacte
+try:
+    url_marine = f"https://marine-api.open-meteo.com/v1/marine?latitude={MARINE_LAT}&longitude={MARINE_LON}&hourly=sea_surface_height_above_sea_level&timezone=Europe/Paris&start_date={date_str}&end_date={date_str}"
+    m_data = requests.get(url_marine).json()["hourly"]
+    tide_heights = m_data["sea_surface_height_above_sea_level"]
+except Exception as e:
+    st.error("Erreur de chargement des données marines.")
+    tide_heights = [0] * 24
 
 col1, col2 = st.columns([1.5, 1])
 
@@ -91,24 +94,23 @@ with col1:
     start_coords = START_POINTS[start_name]
     folium.Marker([start_coords["lat"], start_coords["lon"]], icon=folium.Icon(color="black", icon="home"), popup=start_name).add_to(m_map)
     
-    # Plages avec nos Pouces
     for b in BEACHES:
         if card in b["good"]: icon_html, status = svg_up, "Recommandée"
         elif card in b["bad"]: icon_html, status = svg_down, "Déconseillée"
         else: icon_html, status = svg_right, "Moyenne"
         
         dist = haversine(start_coords["lat"], start_coords["lon"], b["lat"], b["lon"])
-        speed = 15 if transport == "Vélo musculaire" else 30
+        speed = 15 if transport == "Vélo" else 30
         bike_time = int(dist * 1.3 / speed * 60)
-        popup_text = f"<b>{b['name']}</b><br>{status}<br>{transport} : {bike_time} min"
         
+        popup_text = f"<b>{b['name']}</b><br>{status}<br>{transport} : {bike_time} min"
         folium.Marker(
             location=[b["lat"], b["lon"]],
             icon=folium.DivIcon(html=icon_html),
             popup=folium.Popup(popup_text, max_width=150)
         ).add_to(m_map)
     
-    # Vent Animé
+    # Flèches de vent interactives
     wind_towards = (d + 180) % 360
     for pt in WIND_POINTS:
         svg_wind = f"""
@@ -133,15 +135,14 @@ with col2:
     st.subheader("📊 Conditions et Marées")
     st.write(f"🌡️ Air : **{t}°C** | 💧 Eau : **{w_t}°C**")
     st.write(f"💨 Vent : **{w_s} km/h** (Orientation : **{card}**)")
-    st.caption("ℹ️ Source eau : Programme spatial Copernicus")
     
+    # Graphique de la vraie marée API
     x = [i for i in range(24)]
-    y = [get_tide_height(h) for h in x]
     fig, ax = plt.subplots(figsize=(6, 3))
-    ax.plot(x, y, color="#0288d1", linewidth=2)
-    ax.scatter(time_now, get_tide_height(time_now), color="red", zorder=5, s=80)
+    ax.plot(x, tide_heights, color="#0288d1", linewidth=2)
+    ax.scatter(time_now, tide_heights[time_now], color="red", zorder=5, s=80)
     ax.axvline(x=time_now, color='red', linestyle='--', alpha=0.5)
-    ax.set_title("Cycle de la Marée (Heure actuelle en rouge)")
+    ax.set_title("Marée officielle Open-Meteo (Heure actuelle en rouge)")
     ax.set_xlabel("Heure de la journée")
     ax.set_ylabel("Hauteur (m)")
     ax.grid(True, linestyle="--", alpha=0.4)
