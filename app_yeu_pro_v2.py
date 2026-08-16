@@ -81,12 +81,18 @@ with col1:
     for b in BEACHES:
         diff = abs((wd - b["facing"] + 180) % 360 - 180)
         
+        # Logique spécifique affinée
         if b["name"] == "Plage des Sabias":
-            is_good = diff > 60 or (180 <= wd <= 310)
+            # Les Sabias sont abritées dès que le vent vient des terres (secteur Est à Sud : 90° à 200°)
+            is_good = 90 <= wd <= 200
+            is_bad = not is_good and diff < 60
+        elif b["name"] in ["Grande Conche", "Petite Conche"]:
+            # Les Conches passent en "Moyen" (vent de côté / latéral) sur une large plage intermédiaire
+            is_good = diff > 115
+            is_bad = diff < 50
         else:
             is_good = diff > 105
-
-        is_bad = diff < 65 and b["name"] != "Plage des Sabias"
+            is_bad = diff < 65
 
         if is_good:
             icon_html = svg_up
@@ -96,7 +102,7 @@ with col1:
             status = "Déconseillée (Exposée)"
         else:
             icon_html = svg_right
-            status = "Moyenne"
+            status = "Moyenne (Vent de côté)"
         
         dist = haversine(start_coords["lat"], start_coords["lon"], b["lat"], b["lon"])
         speed = 15 if transport == "Vélo" else 30
