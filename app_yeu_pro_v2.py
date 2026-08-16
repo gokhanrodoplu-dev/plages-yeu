@@ -16,20 +16,26 @@ START_POINTS = {
     "Port de la Meule": {"lat": 46.6970, "lon": -2.3190}
 }
 
-# RESTAURATION DE LA MATRICE EXACTE D'HIER SOIR
+# # --- MATRICE D'EXPOSITION (Corrigée : Recommandé = Opposé au vent) ---
 BEACHES = [
-    {"name": "Anse des Soux", "lat": 46.6910, "lon": -2.3209, "good": ["N", "NE", "E", "NO"], "bad": ["S", "SO", "O"]},
-    {"name": "Plage des Vieilles", "lat": 46.6957, "lon": -2.3137, "good": ["N", "NE", "E", "NO"], "bad": ["S", "SO", "SE"]},
-    {"name": "Grande Conche", "lat": 46.6946, "lon": -2.2850, "good": ["N", "NO", "O"], "bad": ["S", "SE", "E"]},
-    {"name": "Petite Conche", "lat": 46.7065, "lon": -2.2991, "good": ["N", "NO", "O"], "bad": ["S", "SE", "E"]},
-    {"name": "Plage des Corbeaux", "lat": 46.6908, "lon": -2.2820, "good": ["O", "NO", "SO"], "bad": ["E", "NE", "SE"]},
-    {"name": "Marais Salés", "lat": 46.7127, "lon": -2.3103, "good": ["S", "SO", "O"], "bad": ["N", "NE", "E"]},
-    {"name": "Ker Châlon", "lat": 46.7196, "lon": -2.3351, "good": ["S", "SO", "SE"], "bad": ["N", "NE", "E", "NO"]},
-    {"name": "Plage des Sapins", "lat": 46.7174, "lon": -2.3159, "good": ["S", "SO", "SE"], "bad": ["N", "NE", "E", "NO"]},
+    # Côte Sauvage (Sud / Sud-Ouest) -> Abritées par N, NE, E
+    {"name": "Anse des Soux", "lat": 46.6910, "lon": -2.3209, "good": ["N", "NE", "E"], "bad": ["S", "SO", "O"]},
+    {"name": "Plage des Vieilles", "lat": 46.6957, "lon": -2.3137, "good": ["N", "NE", "E"], "bad": ["S", "SO", "O"]},
+    {"name": "Grande Conche", "lat": 46.6946, "lon": -2.2850, "good": ["N", "NE", "E"], "bad": ["S", "SO", "O"]},
+    {"name": "Petite Conche", "lat": 46.7065, "lon": -2.2991, "good": ["N", "NE", "E"], "bad": ["S", "SO", "O"]},
+    {"name": "Plage de la Belle Maison", "lat": 46.7081, "lon": -2.3844, "good": ["N", "NE", "E"], "bad": ["S", "SO", "O"]},
     {"name": "Anse des Fontaines", "lat": 46.6895, "lon": -2.3334, "good": ["N", "NE", "E"], "bad": ["S", "SO", "O"]},
-    {"name": "Plage de la Gournaise", "lat": 46.7337, "lon": -2.3809, "good": ["S", "SE", "SO"], "bad": ["N", "NE", "NO"]},
-    {"name": "Plage du But", "lat": 46.7257, "lon": -2.3969, "good": ["S", "SE", "E"], "bad": ["N", "NO", "O"]},
-    {"name": "Plage des Sabias", "lat": 46.7034, "lon": -2.3739, "good": ["E", "SE", "NE"], "bad": ["O", "NO", "SO"]}
+    
+    # Côte Nord / Nord-Est -> Abritées par S, SO, O
+    {"name": "Plage des Sabias", "lat": 46.7034, "lon": -2.3739, "good": ["S", "SO", "O"], "bad": ["N", "NE"]},
+    {"name": "Ker Châlon", "lat": 46.7196, "lon": -2.3351, "good": ["S", "SO", "O"], "bad": ["N", "NE"]},
+    {"name": "Plage des Corbeaux", "lat": 46.6908, "lon": -2.2820, "good": ["S", "SO", "O"], "bad": ["N", "NE"]},
+    {"name": "Marais Salés", "lat": 46.7127, "lon": -2.3103, "good": ["S", "SO", "O"], "bad": ["N", "NE"]},
+    {"name": "Plage des Sapins", "lat": 46.7174, "lon": -2.3159, "good": ["S", "SO", "O"], "bad": ["N", "NE"]},
+    
+    # Orientations spécifiques
+    {"name": "Plage de la Gournaise", "lat": 46.7337, "lon": -2.3809, "good": ["S", "SE", "E"], "bad": ["N", "NO", "O"]},
+    {"name": "Plage du But", "lat": 46.7257, "lon": -2.3969, "good": ["S", "SE", "E"], "bad": ["N", "NO", "O"]}
 ]
 
 WIND_POINTS = [
