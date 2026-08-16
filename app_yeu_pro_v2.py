@@ -18,8 +18,9 @@ START_POINTS = {
     "Port de la Meule": {"lat": 46.6970, "lon": -2.3190}
 }
 
+# J'ai remis votre logique de vent d'origine qui fonctionnait très bien !
 BEACHES = [
-    {"name": "Anse des Soux", "lat": 46.6910, "lon": -2.3209, "good": ["N", "NE", "E", "NO"], "bad": ["S", "SO", "O"]},
+    {"name": "Anse des Soux", "lat": 46.6910, "lon": -2.3209, "good": ["N", "NE", "E"], "bad": ["S", "SO", "O"]},
     {"name": "Plage des Vieilles", "lat": 46.6957, "lon": -2.3137, "good": ["N", "NE", "E", "NO"], "bad": ["S", "SO", "SE"]},
     {"name": "Grande Conche", "lat": 46.6946, "lon": -2.2850, "good": ["N", "NO", "O"], "bad": ["S", "SE", "E"]},
     {"name": "Petite Conche", "lat": 46.7065, "lon": -2.2991, "good": ["N", "NO", "O"], "bad": ["S", "SE", "E"]},
@@ -30,7 +31,7 @@ BEACHES = [
     {"name": "Anse des Fontaines", "lat": 46.6895, "lon": -2.3334, "good": ["N", "NE", "E"], "bad": ["S", "SO", "O"]},
     {"name": "Plage de la Gournaise", "lat": 46.7337, "lon": -2.3809, "good": ["S", "SE", "SO"], "bad": ["N", "NE", "NO"]},
     {"name": "Plage du But", "lat": 46.7257, "lon": -2.3969, "good": ["S", "SE", "E"], "bad": ["N", "NO", "O"]},
-    {"name": "Plage des Sabias", "lat": 46.7034, "lon": -2.3739, "good": ["E", "SE", "NE"], "bad": ["O", "NO", "SO"]}
+    {"name": "Plage des Sabias", "lat": 46.7034, "lon": -2.3739, "good": ["S", "SE", "E"], "bad": ["N", "NO", "O"]}
 ]
 
 WIND_POINTS = [
@@ -62,9 +63,10 @@ if "lat" in query_params and "lon" in query_params:
 st.set_page_config(page_title="Plages Yeu PRO", layout="wide")
 st.title("🏝️ Plages Idéales - Île d'Yeu")
 
-# Par défaut, on sélectionne "Ma Position GPS" si elle est disponible, sinon Port-Joinville
+# Par défaut, on sélectionne "Ma Position GPS" si elle est disponible
 default_index = list(START_POINTS.keys()).index("📍 Ma Position GPS") if "📍 Ma Position GPS" in START_POINTS else 0
 start_name = st.sidebar.selectbox("Lieu de départ", list(START_POINTS.keys()), index=default_index)
+transport = st.sidebar.radio("🚲 Moyen de transport", ["Vélo musculaire", "Voiture"], index=0)
 
 time_now = datetime.datetime.now().hour
 
@@ -75,7 +77,7 @@ t, w_t, w_s, d = w["temperature_2m"][time_now], w["sea_surface_temperature"][tim
 card = ["N", "NE", "E", "SE", "S", "SO", "O", "NO"][round(d / 45) % 8]
 anim_speed = max(0.4, 40.0 / max(w_s, 1))
 
-# Récupération Marée (Algorithme Harmonique Calé)
+# Récupération Marée (Algorithme Harmonique)
 def get_tide_height(hour):
     offset = 7.46 
     return 3.0 + 2.1 * math.cos((hour - offset) * 2 * math.pi / 12.4)
@@ -86,7 +88,6 @@ with col1:
     st.subheader("🗺️ Carte de l'île")
     m_map = folium.Map(location=[46.72, -2.35], zoom_start=13, tiles="CartoDB positron")
     
-    # Marqueur de départ
     start_coords = START_POINTS[start_name]
     folium.Marker([start_coords["lat"], start_coords["lon"]], icon=folium.Icon(color="black", icon="home"), popup=start_name).add_to(m_map)
     
@@ -97,8 +98,9 @@ with col1:
         else: icon_html, status = svg_right, "Moyenne"
         
         dist = haversine(start_coords["lat"], start_coords["lon"], b["lat"], b["lon"])
-        bike_time = int(dist * 1.3 / 15 * 60) # Calibré à 15km/h
-        popup_text = f"<b>{b['name']}</b><br>{status}<br>🚲 Vélo musculaire : {bike_time} min"
+        speed = 15 if transport == "Vélo musculaire" else 30
+        bike_time = int(dist * 1.3 / speed * 60)
+        popup_text = f"<b>{b['name']}</b><br>{status}<br>{transport} : {bike_time} min"
         
         folium.Marker(
             location=[b["lat"], b["lon"]],
@@ -106,7 +108,7 @@ with col1:
             popup=folium.Popup(popup_text, max_width=150)
         ).add_to(m_map)
     
-    # Vent Animé (Sens + Vitesse adaptative)
+    # Vent Animé
     wind_towards = (d + 180) % 360
     for pt in WIND_POINTS:
         svg_wind = f"""
