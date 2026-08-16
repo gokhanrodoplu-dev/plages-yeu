@@ -15,7 +15,7 @@ START_POINTS = {
     "Port de la Meule": {"lat": 46.6970, "lon": -2.3190}
 }
 
-# VOTRE LISTE D'ORIGINE EXACTE
+# VOTRE LISTE D'ORIGINE STRICTE
 BEACHES = [
     {"name": "Anse des Soux", "lat": 46.6910, "lon": -2.3209, "good": ["N", "NE", "E", "NO"], "bad": ["S", "SO", "O"]},
     {"name": "Plage des Vieilles", "lat": 46.6957, "lon": -2.3137, "good": ["N", "NE", "E", "NO"], "bad": ["S", "SO", "SE"]},
@@ -37,6 +37,11 @@ WIND_POINTS = [
     {"lat": 46.700, "lon": -2.319}, {"lat": 46.718, "lon": -2.360},
     {"lat": 46.705, "lon": -2.350}, {"lat": 46.710, "lon": -2.300}
 ]
+
+# --- DESIGN DES POUCES EN COULEURS ---
+svg_up = '''<div style="filter: drop-shadow(2px 2px 2px rgba(0,0,0,0.5)); width:28px; height:28px;"><svg viewBox="0 0 24 24" fill="#28a745" stroke="white" stroke-width="1"><path d="M2 20h2c.55 0 1-.45 1-1v-9c0-.55-.45-1-1-1H2v11zm19.83-7.12c.11-.25.17-.52.17-.8V11c0-1.1-.9-2-2-2h-5.5l.92-4.65c.05-.22.02-.46-.1-.66-.12-.21-.31-.37-.53-.46-.22-.1-.47-.11-.7-.03L9.67 6H7v14h11.28c.84 0 1.58-.5 1.87-1.25l2.68-7.87z"/></svg></div>'''
+svg_down = '''<div style="filter: drop-shadow(2px 2px 2px rgba(0,0,0,0.5)); width:28px; height:28px;"><svg viewBox="0 0 24 24" fill="#dc3545" stroke="white" stroke-width="1"><path d="M22 4h-2c-.55 0-1 .45-1 1v9c0 .55.45 1 1 1h2V4zM2.17 11.12c-.11.25-.17.52-.17.8V13c0 1.1.9 2 2 2h5.5l-.92 4.65c-.05.22-.02.46.1.66.12.21.31.37.53.46.22.1.47.11.7.03L14.33 18H17V4H5.72c-.84 0-1.58.5-1.87 1.25L1.17 11.12z"/></svg></div>'''
+svg_right = '''<div style="filter: drop-shadow(2px 2px 2px rgba(0,0,0,0.5)); transform: rotate(90deg); width:28px; height:28px;"><svg viewBox="0 0 24 24" fill="#fd7e14" stroke="white" stroke-width="1"><path d="M2 20h2c.55 0 1-.45 1-1v-9c0-.55-.45-1-1-1H2v11zm19.83-7.12c.11-.25.17-.52.17-.8V11c0-1.1-.9-2-2-2h-5.5l.92-4.65c.05-.22.02-.46-.1-.66-.12-.21-.31-.37-.53-.46-.22-.1-.47-.11-.7-.03L9.67 6H7v14h11.28c.84 0 1.58-.5 1.87-1.25l2.68-7.87z"/></svg></div>'''
 
 def get_tide_height(hour):
     return 2.94 + 2.06 * math.cos((hour - 7.46) * 2 * math.pi / 12.4)
@@ -69,17 +74,16 @@ with col1:
     folium.Marker([start_coords["lat"], start_coords["lon"]], icon=folium.Icon(color="black", icon="home"), popup=start_name).add_to(m)
     
     for b in BEACHES:
-        if card in b["good"]: icon, color = "👍", "green"
-        elif card in b["bad"]: icon, color = "👎", "red"
-        else: icon, color = "✋", "orange"
+        if card in b["good"]: icon_html = svg_up
+        elif card in b["bad"]: icon_html = svg_down
+        else: icon_html = svg_right
         
         folium.Marker(
             [b["lat"], b["lon"]], 
-            icon=folium.DivIcon(html=f'<div style="font-size:20px; color:{color};"><b>{icon}</b></div>'),
+            icon=folium.DivIcon(html=icon_html),
             popup=b["name"]
         ).add_to(m)
     
-    # Flèches de vent animées
     wind_towards = (wd + 180) % 360
     for pt in WIND_POINTS:
         svg_wind = f"""
