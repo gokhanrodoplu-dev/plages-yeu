@@ -15,19 +15,20 @@ START_POINTS = {
     "Port de la Meule": {"lat": 46.6970, "lon": -2.3190}
 }
 
+# VOTRE LISTE D'ORIGINE EXACTE
 BEACHES = [
-    {"name": "Anse des Soux", "lat": 46.6910, "lon": -2.3209, "facing": 210},
-    {"name": "Plage des Vieilles", "lat": 46.6957, "lon": -2.3137, "facing": 200},
-    {"name": "Grande Conche", "lat": 46.6946, "lon": -2.2850, "facing": 160},
-    {"name": "Petite Conche", "lat": 46.7065, "lon": -2.2991, "facing": 180},
-    {"name": "Plage des Corbeaux", "lat": 46.6908, "lon": -2.2820, "facing": 90},
-    {"name": "Marais Salés", "lat": 46.7127, "lon": -2.3103, "facing": 10},
-    {"name": "Ker Châlon", "lat": 46.7196, "lon": -2.3351, "facing": 0},
-    {"name": "Plage des Sapins", "lat": 46.7174, "lon": -2.3159, "facing": 20},
-    {"name": "Anse des Fontaines", "lat": 46.6895, "lon": -2.3334, "facing": 220},
-    {"name": "Plage de la Gournaise", "lat": 46.7337, "lon": -2.3809, "facing": 310},
-    {"name": "Plage du But", "lat": 46.7257, "lon": -2.3969, "facing": 340},
-    {"name": "Plage des Sabias", "lat": 46.7034, "lon": -2.3739, "facing": 30}
+    {"name": "Anse des Soux", "lat": 46.6910, "lon": -2.3209, "good": ["N", "NE", "E", "NO"], "bad": ["S", "SO", "O"]},
+    {"name": "Plage des Vieilles", "lat": 46.6957, "lon": -2.3137, "good": ["N", "NE", "E", "NO"], "bad": ["S", "SO", "SE"]},
+    {"name": "Grande Conche", "lat": 46.6946, "lon": -2.2850, "good": ["N", "NO", "O"], "bad": ["S", "SE", "E"]},
+    {"name": "Petite Conche", "lat": 46.7065, "lon": -2.2991, "good": ["N", "NO", "O"], "bad": ["S", "SE", "E"]},
+    {"name": "Plage des Corbeaux", "lat": 46.6908, "lon": -2.2820, "good": ["O", "NO", "SO"], "bad": ["E", "NE", "SE"]},
+    {"name": "Marais Salés", "lat": 46.7127, "lon": -2.3103, "good": ["S", "SO", "O"], "bad": ["N", "NE", "E"]},
+    {"name": "Ker Châlon", "lat": 46.7196, "lon": -2.3351, "good": ["S", "SO", "SE"], "bad": ["N", "NE", "E", "NO"]},
+    {"name": "Plage des Sapins", "lat": 46.7174, "lon": -2.3159, "good": ["S", "SO", "SE"], "bad": ["N", "NE", "E", "NO"]},
+    {"name": "Anse des Fontaines", "lat": 46.6895, "lon": -2.3334, "good": ["N", "NE", "E"], "bad": ["S", "SO", "O"]},
+    {"name": "Plage de la Gournaise", "lat": 46.7337, "lon": -2.3809, "good": ["S", "SE", "SO"], "bad": ["N", "NE", "NO"]},
+    {"name": "Plage du But", "lat": 46.7257, "lon": -2.3969, "good": ["S", "SE", "E"], "bad": ["N", "NO", "O"]},
+    {"name": "Plage des Sabias", "lat": 46.7034, "lon": -2.3739, "good": ["E", "SE", "NE"], "bad": ["O", "NO", "SO"]}
 ]
 
 WIND_POINTS = [
@@ -68,13 +69,9 @@ with col1:
     folium.Marker([start_coords["lat"], start_coords["lon"]], icon=folium.Icon(color="black", icon="home"), popup=start_name).add_to(m)
     
     for b in BEACHES:
-        diff = abs((wd - b["facing"] + 180) % 360 - 180)
-        if diff > 110:   
-            icon, color = "👍", "green"
-        elif diff < 70:  
-            icon, color = "👎", "red"
-        else:            
-            icon, color = "✋", "orange"
+        if card in b["good"]: icon, color = "👍", "green"
+        elif card in b["bad"]: icon, color = "👎", "red"
+        else: icon, color = "✋", "orange"
         
         folium.Marker(
             [b["lat"], b["lon"]], 
@@ -106,7 +103,7 @@ with col1:
 with col2:
     st.subheader("📊 Conditions et Marées")
     st.write(f"🌡️ Air : **{temp}°C** | 💧 Eau : **{water}°C**")
-    st.write(f"💨 Vent : **{ws} km/h** ({card} - {int(wd)}°)")
+    st.write(f"💨 Vent : **{ws} km/h** ({card})")
     
     fig, ax = plt.subplots(figsize=(6, 2.8))
     ax.plot(range(24), [get_tide_height(h) for h in range(24)], color="#0288d1")
