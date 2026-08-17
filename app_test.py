@@ -30,15 +30,15 @@ BEACHES = [
     {"name": "Plage des Sabias", "lat": 46.7034, "lon": -2.3739}
 ]
 
-# --- GRILLE DE POINTS DE VENT ÉLARGIE SUR TOUTE LA CARTE ---
+# --- GRILLE DE POINTS DE VENT ÉPARPILLÉE (MOINS DE FLÈCHES) ---
 WIND_POINTS = []
-for lat_step in range(46675, 46755, 15):
-    for lon_step in range(-2410, -2260, 20):
+for lat_step in range(46675, 46755, 30):
+    for lon_step in range(-2410, -2260, 35):
         WIND_POINTS.append({"lat": lat_step / 1000.0, "lon": lon_step / 1000.0})
 
 # --- DESIGN DES POUCES (28px) ---
 svg_up = '''<div style="filter: drop-shadow(2px 2px 2px rgba(0,0,0,0.5)); width:28px; height:28px;"><svg viewBox="0 0 24 24" width="28" height="28" fill="#28a745" stroke="white" stroke-width="1"><path d="M2 20h2c.55 0 1-.45 1-1v-9c0-.55-.45-1-1-1H2v11zm19.83-7.12c.11-.25.17-.52.17-.8V11c0-1.1-.9-2-2-2h-5.5l.92-4.65c.05-.22.02-.46-.1-.66-.12-.21-.31-.37-.53-.46-.22-.1-.47-.11-.7-.03L9.67 6H7v14h11.28c.84 0 1.58-.5 1.87-1.25l2.68-7.87z"/></svg></div>'''
-svg_down = '''<div style="filter: drop-shadow(2px 2px 2px rgba(0,0,0,0.5)); width:28px; height:28px;"><svg viewBox="0 0 24 24" width="28" height="28" fill="#dc3545" stroke="white" stroke-width="1"><path d="M22 4h-2c-.55 0-1 .45-1 1v9c0 .55.45 1 1 1h2V4zM2.17 11.12c-.11.25-.17.52-.17.8V13c0 1.1.9 2 2 2h5.5l-.92 4.65c-.05.22-.02.46.1.66.12.21.31.37.53.46.22.1.47.11.7.03L14.33 18H17V4H5.72c-.84 0-1.58.5-1.87 1.25L1.17 11.12z"/></svg></div>'''
+svg_down = '''<div style="filter: drop-shadow(2px 2px 2px rgba(0,0,0,0.5)); width:28px; height:28px;"><svg viewBox="0 0 24 24" width="28" height="28" fill="#dc3545" stroke="white" stroke-width="1"><path d="M22 4h-2c-.55 0-1 .45-1 1v9c0 .55.45 1 1 1h2V4zM2.17 11.12c-.11.25-.17.52-.17.8V13c0 1.1.9 2 2 2h5.5l-.92 4.65c-.05.22.02.46.1.66.12.21.31.37.53.46.22.1.47.11.7.03L14.33 18H17V4H5.72c-.84 0-1.58.5-1.87 1.25L1.17 11.12z"/></svg></div>'''
 svg_right = '''<div style="filter: drop-shadow(2px 2px 2px rgba(0,0,0,0.5); transform: rotate(90deg); width:28px; height:28px;"><svg viewBox="0 0 24 24" width="28" height="28" fill="#fd7e14" stroke="white" stroke-width="1"><path d="M2 20h2c.55 0 1-.45 1-1v-9c0-.55-.45-1-1-1H2v11zm19.83-7.12c.11-.25.17-.52.17-.8V11c0-1.1-.9-2-2-2h-5.5l.92-4.65c.05-.22.02-.46-.1-.66-.12-.21-.31-.37-.53-.46-.22-.1-.47-.11-.7-.03L9.67 6H7v14h11.28c.84 0 1.58-.5 1.87-1.25l2.68-7.87z"/></svg></div>'''
 
 def haversine(lat1, lon1, lat2, lon2):
@@ -50,7 +50,7 @@ def haversine(lat1, lon1, lat2, lon2):
 def get_tide_height(hour):
     return 2.94 + 2.06 * math.cos((hour - 7.46) * 2 * math.pi / 12.4)
 
-# --- MATRICE DE DÉCISION FINALE (INCHANGÉE) ---
+# --- MATRICE DE DÉCISION ---
 def get_beach_recommendation(b_name, wd):
     if 330 <= wd <= 360 or 0 <= wd < 22.5:
         sector = 0     # Nord
@@ -208,14 +208,14 @@ with col1:
         <style>
             @keyframes windBlow {{
                 0% {{ transform: translateY(10px); opacity: 0; }}
-                20% {{ opacity: 1; }}
-                80% {{ opacity: 1; }}
+                20% {{ opacity: 0.45; }}
+                80% {{ opacity: 0.45; }}
                 100% {{ transform: translateY(-10px); opacity: 0; }}
             }}
         </style>
         <div style="transform: rotate({wind_towards}deg);">
-            <svg viewBox="0 0 24 24" width="22" height="22" style="animation: windBlow {anim_speed}s infinite linear;">
-                <path d="M12 21 V3 M5 10 L12 3 L19 10" stroke="#005580" stroke-width="2.5" fill="none" stroke-linecap="round" stroke-linejoin="round"/>
+            <svg viewBox="0 0 24 24" width="18" height="18" style="animation: windBlow {anim_speed}s infinite linear;">
+                <path d="M12 21 V3 M5 10 L12 3 L19 10" stroke="#78909c" stroke-width="1.2" fill="none" stroke-linecap="round" stroke-linejoin="round"/>
             </svg>
         </div>"""
         folium.Marker(location=[pt["lat"], pt["lon"]], icon=folium.DivIcon(html=svg_wind)).add_to(m)
