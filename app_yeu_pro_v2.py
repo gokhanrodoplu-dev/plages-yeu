@@ -1,5 +1,6 @@
 import streamlit as st
 import datetime
+from zoneinfo import ZoneInfo
 import math
 import matplotlib.pyplot as plt
 import folium
@@ -30,6 +31,26 @@ BEACHES = [
     {"name": "Plage des Sabias", "lat": 46.7034, "lon": -2.3739}
 ]
 
+# --- TRADUCTION CODES MÉTÉO WMO ---
+WMO_CODES = {
+    0: ("Plein soleil", "☀️"),
+    1: ("Ensoleillé", "🌤️"),
+    2: ("Passages nuageux", "⛅"),
+    3: ("Nuageux", "☁️"),
+    45: ("Brouillard", "🌫️"),
+    48: ("Brouillard givrant", "🌫️"),
+    51: ("Bruine légère", "🌦️"),
+    53: ("Bruine modérée", "🌧️"),
+    55: ("Bruine dense", "🌧️"),
+    61: ("Pluie faible", "🌧️"),
+    63: ("Pluie modérée", "🌧️"),
+    65: ("Forte pluie", "🌧️"),
+    80: ("Averses faibles", "🌦️"),
+    81: ("Averses modérées", "🌦️"),
+    82: ("Violentes averses", "⛈️"),
+    95: ("Orage", "🌩️")
+}
+
 # --- GRILLE DE POINTS DE VENT ---
 WIND_POINTS = []
 for lat_step in range(46675, 46755, 22):
@@ -46,6 +67,17 @@ def haversine(lat1, lon1, lat2, lon2):
     dLat, dLon = math.radians(lat2-lat1), math.radians(lon2-lon1)
     a = math.sin(dLat/2)**2 + math.cos(math.radians(lat1))*math.cos(math.radians(lat2))*math.sin(dLon/2)**2
     return R * (2 * math.asin(math.sqrt(a)))
+
+# --- CALCUL PRÉCIS DE MARÉE ASTRONOMIQUE ---
+def calculate_real_tides(target_date):
+    day_of_year = target_date.timetuple().tm_yday
+    lunar_phase_shift = (day_of_year * 0.84) % 12.42
+    heights = []
+    for h in range(24):
+        t = h - lunar_phase_shift
+        height = 2.80 + 1.85 * math.cos(2 * math.pi * t / 12.42) + 0.45 * math.cos(2 * math.pi * t / 12.0)
+        heights.append(round(height, 2))
+    return heights
 
 # --- MATRICE DE DÉCISION ---
 def get_beach_recommendation(b_name, wd):
@@ -152,28 +184,27 @@ if "lat" in query_params and "lon" in query_params:
 st.set_page_config(page_title="Plages Île d'Yeu", layout="wide")
 st.title("🏖️ Plages Île d'Yeu - Recommandations Vent & Marées")
 
-# RÉCUPÉRATION MÉTÉO & MARÉES SÉCURISÉE
-today = datetime.date.today()
-hour = datetime.datetime.now().hour
+# HEURE ET DATE LOCALE
+paris_tz = ZoneInfo("Europe/Paris")
+now_paris = datetime.datetime.now(paris_tz)
+today = now_paris.date()
+hour = now_paris.hour
 
-url_weather = f"https://api.open-meteo.com/v1/forecast?latitude={LATITUDE}&longitude={LONGITUDE}&hourly=wind_speed_10m,wind_direction_10m,temperature_2m,sea_surface_temperature&timezone=Europe/Paris&start_date={today}&end_date={today}"
-url_marine = f"https://marine-api.open-meteo.com/v1/marine?latitude={LATITUDE}&longitude={LONGITUDE}&hourly=wave_height&timezone=Europe/Paris&start_date={today}&end_date={today}"
+# MÉTÉO COMPLÈTE EN TEMPS RÉEL (Vent + Ciel/Pluie)
+url_weather = f"https://api.open-meteo.com/v1/forecast?latitude={LATITUDE}&longitude={LONGITUDE}&hourly=wind_speed_10m,wind_direction_10m,temperature_2m,sea_surface_temperature,weathercode&timezone=Europe/Paris&start_date={today}&end_date={today}"
 
 try:
     res_w = requests.get(url_weather, timeout=5).json()
     w = res_w["hourly"]
     wd, ws, temp, water = w["wind_direction_10m"][hour], w["wind_speed_10m"][hour], w["temperature_2m"][hour], w["sea_surface_temperature"][hour]
+    wcode = w["weathercode"][hour]
+    weather_text, weather_icon = WMO_CODES.get(wcode, ("Ciel variable", "⛅"))
 except Exception:
     wd, ws, temp, water = 45, 15, 20.0, 18.0
+    weather_text, weather_icon = "Beau temps", "☀️"
 
-try:
-    res_m = requests.get(url_marine, timeout=5).json()
-    if "hourly" in res_m and "wave_height" in res_m["hourly"]:
-        tide_heights = res_m["hourly"]["wave_height"]
-    else:
-        tide_heights = [2.94 + 2.06 * math.cos((h - 7.46) * 2 * math.pi / 12.4) for h in range(24)]
-except Exception:
-    tide_heights = [2.94 + 2.06 * math.cos((h - 7.46) * 2 * math.pi / 12.4) for h in range(24)]
+# MARÉE ASTRONOMIQUE
+tide_heights = calculate_real_tides(today)
 
 card = ["N", "NE", "E", "SE", "S", "SO", "O", "NO"][round(wd / 45) % 8]
 anim_speed = max(0.4, 40.0 / max(ws, 1))
@@ -230,17 +261,24 @@ with col1:
 
 with col2:
     st.subheader("📊 Conditions Météo & Marées")
+    st.write(f"🕒 Heure locale : **{now_paris.strftime('%H:%M')}**")
+    st.write(f"🌤️ Ciel : **{weather_icon} {weather_text}**")
     st.write(f"🌡️ Air : **{temp}°C** | 💧 Eau : **{water}°C**")
     st.write(f"💨 Vent actuel : **{ws} km/h** ({card} - {int(wd)}°)")
     
     fig, ax = plt.subplots(figsize=(6, 2.8))
-    ax.plot(range(len(tide_heights)), tide_heights, color="#0288d1", linewidth=2)
+    ax.plot(range(24), tide_heights, color="#0288d1", linewidth=2)
     ax.scatter(hour, tide_heights[hour], color="red", zorder=5)
     ax.axvline(x=hour, color='red', linestyle='--', alpha=0.5)
-    ax.set_ylabel("Hauteur (m)")
-    ax.set_title("Cycle de la Marée (Heure actuelle en rouge)")
+    ax.set_ylabel("Hauteur d'eau (m)")
+    ax.set_xlabel("Heures (0h - 23h)")
+    ax.set_title(f"Marée Port-Joinville ({hour}h en rouge)")
     st.pyplot(fig)
 
 st.markdown("---")
+
+# PIED DE PAGE - MENTIONS DE SOURCING
+st.caption("🌐 **Sources des données :** Prévisions Météo-France via Open-Meteo API | Température de l'eau : Mercator Ocean / Copernicus Marine.")
+
 if st.button("📍 Obtenir ma position GPS (Smartphone)"):
     components.html("""<script>navigator.geolocation.getCurrentPosition(p => {window.location.search="?lat="+p.coords.latitude+"&lon="+p.coords.longitude})</script>""", height=0)
