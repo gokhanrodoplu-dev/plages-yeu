@@ -16,18 +16,18 @@ START_POINTS = {
 }
 
 BEACHES = [
-    {"name": "Anse des Soux", "lat": 46.6910, "lon": -2.3209, "facing": 210},
-    {"name": "Plage des Vieilles", "lat": 46.6957, "lon": -2.3137, "facing": 200},
-    {"name": "Grande Conche", "lat": 46.6946, "lon": -2.2850, "facing": 160},
-    {"name": "Petite Conche", "lat": 46.7065, "lon": -2.2991, "facing": 180},
-    {"name": "Plage des Corbeaux", "lat": 46.6908, "lon": -2.2820, "facing": 90},
-    {"name": "Marais Salés", "lat": 46.7127, "lon": -2.3103, "facing": 10},
-    {"name": "Ker Châlon", "lat": 46.7196, "lon": -2.3351, "facing": 0},
-    {"name": "Plage des Sapins", "lat": 46.7174, "lon": -2.3159, "facing": 20},
-    {"name": "Anse des Fontaines", "lat": 46.6895, "lon": -2.3334, "facing": 220},
-    {"name": "Plage de la Gournaise", "lat": 46.7337, "lon": -2.3809, "facing": 310},
-    {"name": "Plage du But", "lat": 46.7257, "lon": -2.3969, "facing": 340},
-    {"name": "Plage des Sabias", "lat": 46.7034, "lon": -2.3739, "facing": 30}
+    {"name": "Anse des Soux", "lat": 46.6910, "lon": -2.3209},
+    {"name": "Plage des Vieilles", "lat": 46.6957, "lon": -2.3137},
+    {"name": "Grande Conche", "lat": 46.6946, "lon": -2.2850},
+    {"name": "Petite Conche", "lat": 46.7065, "lon": -2.2991},
+    {"name": "Plage des Corbeaux", "lat": 46.6908, "lon": -2.2820},
+    {"name": "Marais Salés", "lat": 46.7127, "lon": -2.3103},
+    {"name": "Ker Châlon", "lat": 46.7196, "lon": -2.3351},
+    {"name": "Plage des Sapins", "lat": 46.7174, "lon": -2.3159},
+    {"name": "Anse des Fontaines", "lat": 46.6895, "lon": -2.3334},
+    {"name": "Plage de la Gournaise", "lat": 46.7337, "lon": -2.3809},
+    {"name": "Plage du But", "lat": 46.7257, "lon": -2.3969},
+    {"name": "Plage des Sabias", "lat": 46.7034, "lon": -2.3739}
 ]
 
 WIND_POINTS = [
@@ -51,30 +51,95 @@ def haversine(lat1, lon1, lat2, lon2):
 def get_tide_height(hour):
     return 2.94 + 2.06 * math.cos((hour - 7.46) * 2 * math.pi / 12.4)
 
+# --- MATRICE DE DÉCISION EXACTE SELON VOS NOTES ---
+def get_beach_recommendation(b_name, wd):
+    # Sectorisation angulaire
+    if 330 <= wd <= 360 or 0 <= wd < 22.5:
+        sector = 0     # Nord / NNO (~341°)
+    elif 22.5 <= wd < 67.5:
+        sector = 45    # NE
+    elif 67.5 <= wd < 105:
+        sector = 90    # E
+    elif 105 <= wd < 135:
+        sector = 120   # SE (120°)
+    elif 135 <= wd < 170:
+        sector = 150   # SE (150°)
+    elif 170 <= wd < 200:
+        sector = 190   # S
+    elif 200 <= wd < 240:
+        sector = 213   # SO
+    elif 240 <= wd < 285:
+        sector = 265   # O
+    else:
+        sector = 300   # NO
+
+    matrix = {
+        0: {
+            "good": ["Plage des Sabias", "Anse des Fontaines", "Anse des Soux", "Plage des Vieilles"],
+            "mid": ["Plage des Corbeaux"],
+            "bad": ["Plage du But", "Plage de la Gournaise", "Ker Châlon", "Plage des Sapins", "Marais Salés", "Petite Conche", "Grande Conche"]
+        },
+        45: {
+            "good": ["Plage des Sabias", "Anse des Fontaines", "Anse des Soux", "Plage des Vieilles", "Grande Conche", "Petite Conche", "Marais Salés", "Plage des Sapins"],
+            "mid": [],
+            "bad": ["Ker Châlon", "Plage de la Gournaise", "Plage du But"]
+        },
+        90: {
+            "good": ["Plage de la Gournaise", "Plage du But", "Plage des Sabias"],
+            "mid": ["Plage des Vieilles", "Anse des Fontaines", "Ker Châlon"],
+            "bad": ["Anse des Soux", "Plage des Corbeaux", "Grande Conche", "Petite Conche", "Marais Salés", "Plage des Sapins"]
+        },
+        120: {
+            "good": ["Plage du But", "Plage de la Gournaise", "Ker Châlon"],
+            "mid": ["Anse des Fontaines", "Plage des Sabias", "Plage des Sapins", "Marais Salés", "Petite Conche"],
+            "bad": ["Plage des Corbeaux", "Plage des Vieilles", "Anse des Soux", "Grande Conche"]
+        },
+        150: {
+            "good": ["Plage du But", "Plage de la Gournaise", "Ker Châlon", "Plage des Sapins", "Marais Salés"],
+            "mid": ["Petite Conche", "Grande Conche"],
+            "bad": ["Plage des Vieilles", "Anse des Soux", "Anse des Fontaines", "Plage des Sabias", "Plage des Corbeaux"]
+        },
+        190: {
+            "good": ["Grande Conche", "Petite Conche", "Marais Salés", "Plage des Sapins", "Ker Châlon", "Plage de la Gournaise", "Plage du But"],
+            "mid": [],
+            "bad": ["Plage des Sabias", "Anse des Fontaines", "Anse des Soux", "Plage des Vieilles", "Plage des Corbeaux"]
+        },
+        213: {
+            "good": ["Plage du But", "Grande Conche", "Petite Conche", "Marais Salés", "Plage des Sapins", "Ker Châlon", "Plage de la Gournaise"],
+            "mid": [],
+            "bad": ["Plage des Sabias", "Anse des Fontaines", "Anse des Soux", "Plage des Vieilles", "Plage des Corbeaux"]
+        },
+        265: {
+            "good": ["Plage des Vieilles", "Plage des Corbeaux", "Grande Conche", "Petite Conche", "Marais Salés", "Plage des Sapins", "Ker Châlon"],
+            "mid": ["Plage du But", "Plage des Sabias", "Anse des Fontaines", "Anse des Soux", "Plage de la Gournaise"],
+            "bad": []
+        },
+        300: {
+            "good": ["Anse des Soux", "Plage des Vieilles", "Plage des Corbeaux", "Grande Conche", "Plage des Sabias"],
+            "mid": ["Anse des Fontaines", "Petite Conche", "Marais Salés", "Plage des Sapins", "Ker Châlon"],
+            "bad": ["Plage du But", "Plage de la Gournaise"]
+        }
+    }
+
+    rules = matrix.get(sector, {"good": [], "mid": [], "bad": []})
+    if b_name in rules["good"]:
+        return "Recommandée (Abritée)", svg_up
+    elif b_name in rules["mid"]:
+        return "Moyenne (Vent de côté)", svg_right
+    else:
+        return "Déconseillée (Exposée)", svg_down
+
 query_params = st.query_params
 if "lat" in query_params and "lon" in query_params:
     START_POINTS["📍 Ma Position GPS"] = {"lat": float(query_params["lat"]), "lon": float(query_params["lon"])}
 
-st.set_page_config(page_title="Testeur Algorithme Plages", layout="wide")
-st.title("🧪 Mode Test - Simulation du Vent")
+st.set_page_config(page_title="Plages Yeu PRO", layout="wide")
+st.title("🏝️ Plages Idéales - Île d'Yeu")
 
-# --- RÉCUPÉRATION MÉTOO RÉELLE PAR DÉFAUT ---
 url = f"https://api.open-meteo.com/v1/forecast?latitude={LATITUDE}&longitude={LONGITUDE}&hourly=wind_speed_10m,wind_direction_10m,temperature_2m,sea_surface_temperature&timezone=Europe/Paris&start_date={datetime.date.today()}&end_date={datetime.date.today()}"
 w = requests.get(url).json()["hourly"]
 hour = datetime.datetime.now().hour
-real_ws, real_wd, temp, water = w["wind_speed_10m"][hour], w["wind_direction_10m"][hour], w["temperature_2m"][hour], w["sea_surface_temperature"][hour]
-
-# --- BARRE LATÉRAL DE SIMULATION ---
-st.sidebar.header("🎛️ Paramètres de Simulation")
-mode_test = st.sidebar.checkbox("Activer le mode simulation manuelle", value=True)
-
-if mode_test:
-    wd = st.sidebar.slider("Direction du vent (Degrés)", 0, 360, int(real_wd))
-    ws = st.sidebar.slider("Force du vent (km/h)", 0, 80, int(real_ws))
-else:
-    wd = real_wd
-    ws = real_ws
-
+ws, wd, temp, water = w["wind_speed_10m"][hour], w["wind_direction_10m"][hour], w["temperature_2m"][hour], w["sea_surface_temperature"][hour]
 card = ["N", "NE", "E", "SE", "S", "SO", "O", "NO"][round(wd / 45) % 8]
 anim_speed = max(0.4, 40.0 / max(ws, 1))
 
@@ -85,34 +150,14 @@ transport = st.sidebar.radio("🚲 Transport", ["Vélo", "Voiture"], horizontal=
 col1, col2 = st.columns([1.5, 1])
 
 with col1:
-    st.subheader(f"🗺️ Carte simulée (Vent : {card} - {int(wd)}°)")
+    st.subheader("🗺️ Carte de l'île")
     m = folium.Map(location=[46.72, -2.35], zoom_start=13, tiles="CartoDB positron")
     
     start_coords = START_POINTS[start_name]
     folium.Marker([start_coords["lat"], start_coords["lon"]], icon=folium.Icon(color="black", icon="home"), popup=start_name).add_to(m)
     
     for b in BEACHES:
-        diff = abs((wd - b["facing"] + 180) % 360 - 180)
-        
-        if b["name"] == "Plage des Sabias":
-            is_good = True
-            is_bad = False
-        elif b["name"] in ["Grande Conche", "Petite Conche"]:
-            is_good = False
-            is_bad = False
-        else:
-            is_good = diff > 105
-            is_bad = diff < 65
-
-        if is_good:
-            icon_html = svg_up
-            status = "Recommandée (Abritée)"
-        elif is_bad:
-            icon_html = svg_down
-            status = "Déconseillée (Exposée)"
-        else:
-            icon_html = svg_right
-            status = "Moyenne (Vent de côté)"
+        status, icon_html = get_beach_recommendation(b["name"], wd)
         
         dist = haversine(start_coords["lat"], start_coords["lon"], b["lat"], b["lon"])
         speed = 15 if transport == "Vélo" else 30
@@ -149,7 +194,7 @@ with col1:
 with col2:
     st.subheader("📊 Conditions et Marées")
     st.write(f"🌡️ Air : **{temp}°C** | 💧 Eau : **{water}°C**")
-    st.write(f"💨 Vent simulé : **{ws} km/h** ({card} - {int(wd)}°)")
+    st.write(f"💨 Vent : **{ws} km/h** ({card} - {int(wd)}°)")
     
     fig, ax = plt.subplots(figsize=(6, 2.8))
     ax.plot(range(24), [get_tide_height(h) for h in range(24)], color="#0288d1")
