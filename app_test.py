@@ -51,13 +51,15 @@ def haversine(lat1, lon1, lat2, lon2):
 def get_tide_height(hour):
     return 2.94 + 2.06 * math.cos((hour - 7.46) * 2 * math.pi / 12.4)
 
-# --- MATRICE DE DÉCISION AJUSTÉE ---
+# --- MATRICE DE DÉCISION FINALE ---
 def get_beach_recommendation(b_name, wd):
     if 330 <= wd <= 360 or 0 <= wd < 22.5:
         sector = 0     # Nord
     elif 22.5 <= wd <= 68:
-        sector = 45    # Nord-Est (Ajusté 24° à 68°)
-    elif 68 < wd < 105:
+        sector = 45    # Nord-Est (24° à 68°)
+    elif 69 <= wd <= 82:
+        sector = 75    # Transition NE / E (69° à 82°)
+    elif 82 < wd < 105:
         sector = 90    # Est
     elif 105 <= wd < 135:
         sector = 120   # Sud-Est (120°)
@@ -67,10 +69,14 @@ def get_beach_recommendation(b_name, wd):
         sector = 190   # Sud
     elif 200 <= wd < 240:
         sector = 213   # Sud-Ouest
-    elif 240 <= wd < 285:
-        sector = 265   # Ouest
+    elif 240 <= wd <= 250:
+        sector = 240   # Sud-Ouest / Ouest (240° à 250°)
+    elif 251 <= wd <= 270:
+        sector = 260   # Ouest (251° à 270°)
+    elif 271 <= wd <= 284:
+        sector = 280   # Ouest-Nord-Ouest (271° à 284°)
     else:
-        sector = 300   # Nord-Ouest / NNO (inclut 324°)
+        sector = 300   # Nord-Ouest / NNO (>284°)
 
     matrix = {
         0: {
@@ -78,10 +84,15 @@ def get_beach_recommendation(b_name, wd):
             "mid": ["Plage des Corbeaux"],
             "bad": ["Plage du But", "Plage de la Gournaise", "Ker Châlon", "Plage des Sapins", "Marais Salés", "Petite Conche", "Grande Conche"]
         },
-        45: {  # Plage Nord-Est (24° - 68°) ajustée selon vos consignes
+        45: {
             "good": ["Plage des Sabias", "Anse des Fontaines", "Anse des Soux", "Plage des Vieilles"],
             "mid": [],
             "bad": ["Grande Conche", "Petite Conche", "Marais Salés", "Plage des Sapins", "Plage de la Gournaise", "Plage du But", "Ker Châlon"]
+        },
+        75: {
+            "good": ["Plage des Sabias", "Anse des Fontaines", "Anse des Soux", "Plage des Vieilles"],
+            "mid": ["Plage du But", "Ker Châlon"],
+            "bad": ["Plage de la Gournaise", "Grande Conche", "Petite Conche", "Marais Salés", "Plage des Sapins", "Plage des Corbeaux"]
         },
         90: {
             "good": ["Plage de la Gournaise", "Plage du But", "Plage des Sabias"],
@@ -108,12 +119,22 @@ def get_beach_recommendation(b_name, wd):
             "mid": [],
             "bad": ["Plage des Sabias", "Anse des Fontaines", "Anse des Soux", "Plage des Vieilles", "Plage des Corbeaux"]
         },
-        265: {
-            "good": ["Plage des Vieilles", "Plage des Corbeaux", "Grande Conche", "Petite Conche", "Marais Salés", "Plage des Sapins", "Ker Châlon"],
-            "mid": ["Plage du But", "Plage des Sabias", "Anse des Fontaines", "Anse des Soux", "Plage de la Gournaise"],
-            "bad": []
+        240: {  # 240° à 250°
+            "good": ["Grande Conche", "Petite Conche", "Marais Salés", "Plage des Sapins", "Ker Châlon", "Plage du But", "Plage de la Gournaise"],
+            "mid": ["Plage des Vieilles"],
+            "bad": ["Plage des Sabias", "Anse des Fontaines", "Anse des Soux", "Plage des Corbeaux"]
         },
-        300: {  # Inclut le Nord-Ouest 324°
+        260: {  # 251° à 270°
+            "good": ["Plage des Corbeaux", "Grande Conche", "Petite Conche", "Marais Salés", "Plage des Sapins", "Ker Châlon"],
+            "mid": ["Plage des Sabias", "Anse des Soux", "Plage des Vieilles"],
+            "bad": ["Anse des Fontaines", "Plage du But", "Plage de la Gournaise"]
+        },
+        280: {  # 271° à 284°
+            "good": ["Plage des Vieilles", "Plage des Corbeaux", "Grande Conche", "Petite Conche", "Marais Salés", "Plage des Sapins", "Ker Châlon", "Plage des Sabias"],
+            "mid": ["Anse des Fontaines", "Anse des Soux"],
+            "bad": ["Plage du But", "Plage de la Gournaise"]
+        },
+        300: {  # >284°
             "good": ["Anse des Soux", "Plage des Vieilles", "Plage des Corbeaux", "Grande Conche", "Plage des Sabias", "Anse des Fontaines"],
             "mid": ["Petite Conche", "Marais Salés", "Plage des Sapins"],
             "bad": ["Plage du But", "Plage de la Gournaise", "Ker Châlon"]
