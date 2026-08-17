@@ -30,10 +30,10 @@ BEACHES = [
     {"name": "Plage des Sabias", "lat": 46.7034, "lon": -2.3739}
 ]
 
-# --- GRILLE DE POINTS DE VENT ÉPARPILLÉE (MOINS DE FLÈCHES) ---
+# --- GRILLE DE POINTS DE VENT (DENSITÉ RÉAJUSTÉE) ---
 WIND_POINTS = []
-for lat_step in range(46675, 46755, 30):
-    for lon_step in range(-2410, -2260, 35):
+for lat_step in range(46675, 46755, 22):
+    for lon_step in range(-2410, -2260, 25):
         WIND_POINTS.append({"lat": lat_step / 1000.0, "lon": lon_step / 1000.0})
 
 # --- DESIGN DES POUCES (28px) ---
@@ -208,8 +208,8 @@ with col1:
         <style>
             @keyframes windBlow {{
                 0% {{ transform: translateY(10px); opacity: 0; }}
-                20% {{ opacity: 0.45; }}
-                80% {{ opacity: 0.45; }}
+                20% {{ opacity: 0.65; }}
+                80% {{ opacity: 0.65; }}
                 100% {{ transform: translateY(-10px); opacity: 0; }}
             }}
         </style>
