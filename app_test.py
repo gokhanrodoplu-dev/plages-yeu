@@ -51,26 +51,26 @@ def haversine(lat1, lon1, lat2, lon2):
 def get_tide_height(hour):
     return 2.94 + 2.06 * math.cos((hour - 7.46) * 2 * math.pi / 12.4)
 
-# --- MATRICE DE DÉCISION EXACTE SELON VOS NOTES ---
+# --- MATRICE DE DÉCISION AJUSTÉE ---
 def get_beach_recommendation(b_name, wd):
     if 330 <= wd <= 360 or 0 <= wd < 22.5:
-        sector = 0     # Nord / NNO (~341°)
-    elif 22.5 <= wd < 67.5:
-        sector = 45    # NE
-    elif 67.5 <= wd < 105:
-        sector = 90    # E
+        sector = 0     # Nord
+    elif 22.5 <= wd <= 68:
+        sector = 45    # Nord-Est (Ajusté 24° à 68°)
+    elif 68 < wd < 105:
+        sector = 90    # Est
     elif 105 <= wd < 135:
-        sector = 120   # SE (120°)
+        sector = 120   # Sud-Est (120°)
     elif 135 <= wd < 170:
-        sector = 150   # SE (150°)
+        sector = 150   # Sud-Est (150°)
     elif 170 <= wd < 200:
-        sector = 190   # S
+        sector = 190   # Sud
     elif 200 <= wd < 240:
-        sector = 213   # SO
+        sector = 213   # Sud-Ouest
     elif 240 <= wd < 285:
-        sector = 265   # O
+        sector = 265   # Ouest
     else:
-        sector = 300   # NO
+        sector = 300   # Nord-Ouest / NNO (inclut 324°)
 
     matrix = {
         0: {
@@ -78,10 +78,10 @@ def get_beach_recommendation(b_name, wd):
             "mid": ["Plage des Corbeaux"],
             "bad": ["Plage du But", "Plage de la Gournaise", "Ker Châlon", "Plage des Sapins", "Marais Salés", "Petite Conche", "Grande Conche"]
         },
-        45: {
-            "good": ["Plage des Sabias", "Anse des Fontaines", "Anse des Soux", "Plage des Vieilles", "Grande Conche", "Petite Conche", "Marais Salés", "Plage des Sapins"],
+        45: {  # Plage Nord-Est (24° - 68°) ajustée selon vos consignes
+            "good": ["Plage des Sabias", "Anse des Fontaines", "Anse des Soux", "Plage des Vieilles"],
             "mid": [],
-            "bad": ["Ker Châlon", "Plage de la Gournaise", "Plage du But"]
+            "bad": ["Grande Conche", "Petite Conche", "Marais Salés", "Plage des Sapins", "Plage de la Gournaise", "Plage du But", "Ker Châlon"]
         },
         90: {
             "good": ["Plage de la Gournaise", "Plage du But", "Plage des Sabias"],
@@ -113,10 +113,10 @@ def get_beach_recommendation(b_name, wd):
             "mid": ["Plage du But", "Plage des Sabias", "Anse des Fontaines", "Anse des Soux", "Plage de la Gournaise"],
             "bad": []
         },
-        300: {
-            "good": ["Anse des Soux", "Plage des Vieilles", "Plage des Corbeaux", "Grande Conche", "Plage des Sabias"],
-            "mid": ["Anse des Fontaines", "Petite Conche", "Marais Salés", "Plage des Sapins", "Ker Châlon"],
-            "bad": ["Plage du But", "Plage de la Gournaise"]
+        300: {  # Inclut le Nord-Ouest 324°
+            "good": ["Anse des Soux", "Plage des Vieilles", "Plage des Corbeaux", "Grande Conche", "Plage des Sabias", "Anse des Fontaines"],
+            "mid": ["Petite Conche", "Marais Salés", "Plage des Sapins"],
+            "bad": ["Plage du But", "Plage de la Gournaise", "Ker Châlon"]
         }
     }
 
