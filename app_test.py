@@ -37,7 +37,7 @@ WIND_POINTS = [
     {"lat": 46.705, "lon": -2.350}, {"lat": 46.710, "lon": -2.300}
 ]
 
-# --- DESIGN DES POUCES (TAILLE UNIFORMISÉE 28px) ---
+# --- DESIGN DES POUCES (28px) ---
 svg_up = '''<div style="filter: drop-shadow(2px 2px 2px rgba(0,0,0,0.5)); width:28px; height:28px;"><svg viewBox="0 0 24 24" width="28" height="28" fill="#28a745" stroke="white" stroke-width="1"><path d="M2 20h2c.55 0 1-.45 1-1v-9c0-.55-.45-1-1-1H2v11zm19.83-7.12c.11-.25.17-.52.17-.8V11c0-1.1-.9-2-2-2h-5.5l.92-4.65c.05-.22.02-.46-.1-.66-.12-.21-.31-.37-.53-.46-.22-.1-.47-.11-.7-.03L9.67 6H7v14h11.28c.84 0 1.58-.5 1.87-1.25l2.68-7.87z"/></svg></div>'''
 svg_down = '''<div style="filter: drop-shadow(2px 2px 2px rgba(0,0,0,0.5)); width:28px; height:28px;"><svg viewBox="0 0 24 24" width="28" height="28" fill="#dc3545" stroke="white" stroke-width="1"><path d="M22 4h-2c-.55 0-1 .45-1 1v9c0 .55.45 1 1 1h2V4zM2.17 11.12c-.11.25-.17.52-.17.8V13c0 1.1.9 2 2 2h5.5l-.92 4.65c-.05.22-.02.46.1.66.12.21.31.37.53.46.22.1.47.11.7.03L14.33 18H17V4H5.72c-.84 0-1.58.5-1.87 1.25L1.17 11.12z"/></svg></div>'''
 svg_right = '''<div style="filter: drop-shadow(2px 2px 2px rgba(0,0,0,0.5); transform: rotate(90deg); width:28px; height:28px;"><svg viewBox="0 0 24 24" width="28" height="28" fill="#fd7e14" stroke="white" stroke-width="1"><path d="M2 20h2c.55 0 1-.45 1-1v-9c0-.55-.45-1-1-1H2v11zm19.83-7.12c.11-.25.17-.52.17-.8V11c0-1.1-.9-2-2-2h-5.5l.92-4.65c.05-.22.02-.46-.1-.66-.12-.21-.31-.37-.53-.46-.22-.1-.47-.11-.7-.03L9.67 6H7v14h11.28c.84 0 1.58-.5 1.87-1.25l2.68-7.87z"/></svg></div>'''
@@ -53,7 +53,6 @@ def get_tide_height(hour):
 
 # --- MATRICE DE DÉCISION EXACTE SELON VOS NOTES ---
 def get_beach_recommendation(b_name, wd):
-    # Sectorisation angulaire
     if 330 <= wd <= 360 or 0 <= wd < 22.5:
         sector = 0     # Nord / NNO (~341°)
     elif 22.5 <= wd < 67.5:
@@ -133,13 +132,26 @@ query_params = st.query_params
 if "lat" in query_params and "lon" in query_params:
     START_POINTS["📍 Ma Position GPS"] = {"lat": float(query_params["lat"]), "lon": float(query_params["lon"])}
 
-st.set_page_config(page_title="Plages Yeu PRO", layout="wide")
-st.title("🏝️ Plages Idéales - Île d'Yeu")
+st.set_page_config(page_title="Testeur Plages Yeu", layout="wide")
+st.title("🧪 Mode Test - Simulation du Vent")
 
+# Météo réelle par défaut
 url = f"https://api.open-meteo.com/v1/forecast?latitude={LATITUDE}&longitude={LONGITUDE}&hourly=wind_speed_10m,wind_direction_10m,temperature_2m,sea_surface_temperature&timezone=Europe/Paris&start_date={datetime.date.today()}&end_date={datetime.date.today()}"
 w = requests.get(url).json()["hourly"]
 hour = datetime.datetime.now().hour
-ws, wd, temp, water = w["wind_speed_10m"][hour], w["wind_direction_10m"][hour], w["temperature_2m"][hour], w["sea_surface_temperature"][hour]
+real_ws, real_wd, temp, water = w["wind_speed_10m"][hour], w["wind_direction_10m"][hour], w["temperature_2m"][hour], w["sea_surface_temperature"][hour]
+
+# Barre latérale avec curseurs de simulation
+st.sidebar.header("🎛️ Paramètres de Simulation")
+mode_test = st.sidebar.checkbox("Activer la simulation manuelle", value=True)
+
+if mode_test:
+    wd = st.sidebar.slider("Direction du vent (Degrés)", 0, 360, int(real_wd))
+    ws = st.sidebar.slider("Force du vent (km/h)", 0, 80, int(real_ws))
+else:
+    wd = real_wd
+    ws = real_ws
+
 card = ["N", "NE", "E", "SE", "S", "SO", "O", "NO"][round(wd / 45) % 8]
 anim_speed = max(0.4, 40.0 / max(ws, 1))
 
@@ -150,7 +162,7 @@ transport = st.sidebar.radio("🚲 Transport", ["Vélo", "Voiture"], horizontal=
 col1, col2 = st.columns([1.5, 1])
 
 with col1:
-    st.subheader("🗺️ Carte de l'île")
+    st.subheader(f"🗺️ Carte simulée (Vent : {card} - {int(wd)}°)")
     m = folium.Map(location=[46.72, -2.35], zoom_start=13, tiles="CartoDB positron")
     
     start_coords = START_POINTS[start_name]
