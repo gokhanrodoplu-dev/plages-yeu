@@ -30,12 +30,11 @@ BEACHES = [
     {"name": "Plage des Sabias", "lat": 46.7034, "lon": -2.3739}
 ]
 
-WIND_POINTS = [
-    {"lat": 46.728, "lon": -2.351}, {"lat": 46.721, "lon": -2.388},
-    {"lat": 46.695, "lon": -2.292}, {"lat": 46.710, "lon": -2.330},
-    {"lat": 46.700, "lon": -2.319}, {"lat": 46.718, "lon": -2.360},
-    {"lat": 46.705, "lon": -2.350}, {"lat": 46.710, "lon": -2.300}
-]
+# --- GRILLE DE POINTS DE VENT ÉLARGIE SUR TOUTE LA CARTE ---
+WIND_POINTS = []
+for lat_step in range(46675, 46755, 15):
+    for lon_step in range(-2410, -2260, 20):
+        WIND_POINTS.append({"lat": lat_step / 1000.0, "lon": lon_step / 1000.0})
 
 # --- DESIGN DES POUCES (28px) ---
 svg_up = '''<div style="filter: drop-shadow(2px 2px 2px rgba(0,0,0,0.5)); width:28px; height:28px;"><svg viewBox="0 0 24 24" width="28" height="28" fill="#28a745" stroke="white" stroke-width="1"><path d="M2 20h2c.55 0 1-.45 1-1v-9c0-.55-.45-1-1-1H2v11zm19.83-7.12c.11-.25.17-.52.17-.8V11c0-1.1-.9-2-2-2h-5.5l.92-4.65c.05-.22.02-.46-.1-.66-.12-.21-.31-.37-.53-.46-.22-.1-.47-.11-.7-.03L9.67 6H7v14h11.28c.84 0 1.58-.5 1.87-1.25l2.68-7.87z"/></svg></div>'''
@@ -51,7 +50,7 @@ def haversine(lat1, lon1, lat2, lon2):
 def get_tide_height(hour):
     return 2.94 + 2.06 * math.cos((hour - 7.46) * 2 * math.pi / 12.4)
 
-# --- MATRICE DE DÉCISION FINALE ---
+# --- MATRICE DE DÉCISION FINALE (INCHANGÉE) ---
 def get_beach_recommendation(b_name, wd):
     if 330 <= wd <= 360 or 0 <= wd < 22.5:
         sector = 0     # Nord
@@ -119,22 +118,22 @@ def get_beach_recommendation(b_name, wd):
             "mid": [],
             "bad": ["Plage des Sabias", "Anse des Fontaines", "Anse des Soux", "Plage des Vieilles", "Plage des Corbeaux"]
         },
-        240: {  # 240° à 250°
+        240: {
             "good": ["Grande Conche", "Petite Conche", "Marais Salés", "Plage des Sapins", "Ker Châlon", "Plage du But", "Plage de la Gournaise"],
             "mid": ["Plage des Vieilles"],
             "bad": ["Plage des Sabias", "Anse des Fontaines", "Anse des Soux", "Plage des Corbeaux"]
         },
-        260: {  # 251° à 270°
+        260: {
             "good": ["Plage des Corbeaux", "Grande Conche", "Petite Conche", "Marais Salés", "Plage des Sapins", "Ker Châlon"],
             "mid": ["Plage des Sabias", "Anse des Soux", "Plage des Vieilles"],
             "bad": ["Anse des Fontaines", "Plage du But", "Plage de la Gournaise"]
         },
-        280: {  # 271° à 284°
+        280: {
             "good": ["Plage des Vieilles", "Plage des Corbeaux", "Grande Conche", "Petite Conche", "Marais Salés", "Plage des Sapins", "Ker Châlon", "Plage des Sabias"],
             "mid": ["Anse des Fontaines", "Anse des Soux"],
             "bad": ["Plage du But", "Plage de la Gournaise"]
         },
-        300: {  # >284°
+        300: {
             "good": ["Anse des Soux", "Plage des Vieilles", "Plage des Corbeaux", "Grande Conche", "Plage des Sabias", "Anse des Fontaines"],
             "mid": ["Petite Conche", "Marais Salés", "Plage des Sapins"],
             "bad": ["Plage du But", "Plage de la Gournaise", "Ker Châlon"]
@@ -162,7 +161,6 @@ w = requests.get(url).json()["hourly"]
 hour = datetime.datetime.now().hour
 real_ws, real_wd, temp, water = w["wind_speed_10m"][hour], w["wind_direction_10m"][hour], w["temperature_2m"][hour], w["sea_surface_temperature"][hour]
 
-# Barre latérale avec curseurs de simulation
 st.sidebar.header("🎛️ Paramètres de Simulation")
 mode_test = st.sidebar.checkbox("Activer la simulation manuelle", value=True)
 
