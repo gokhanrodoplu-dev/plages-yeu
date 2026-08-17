@@ -47,9 +47,6 @@ def haversine(lat1, lon1, lat2, lon2):
     a = math.sin(dLat/2)**2 + math.cos(math.radians(lat1))*math.cos(math.radians(lat2))*math.sin(dLon/2)**2
     return R * (2 * math.asin(math.sqrt(a)))
 
-def get_tide_height(hour):
-    return 2.94 + 2.06 * math.cos((hour - 7.46) * 2 * math.pi / 12.4)
-
 # --- MATRICE DE DÉCISION ---
 def get_beach_recommendation(b_name, wd):
     if 330 <= wd <= 360 or 0 <= wd < 22.5:
@@ -155,11 +152,17 @@ if "lat" in query_params and "lon" in query_params:
 st.set_page_config(page_title="Plages Île d'Yeu", layout="wide")
 st.title("🏖️ Plages Île d'Yeu - Recommandations Vent & Marées")
 
-# RÉCUPÉRATION MÉTÉO EN TEMPS RÉEL
-url = f"https://api.open-meteo.com/v1/forecast?latitude={LATITUDE}&longitude={LONGITUDE}&hourly=wind_speed_10m,wind_direction_10m,temperature_2m,sea_surface_temperature&timezone=Europe/Paris&start_date={datetime.date.today()}&end_date={datetime.date.today()}"
-w = requests.get(url).json()["hourly"]
+# RÉCUPÉRATION MÉTÉO & MARÉES EN TEMPS RÉEL
+today = datetime.date.today()
+url_weather = f"https://api.open-meteo.com/v1/forecast?latitude={LATITUDE}&longitude={LONGITUDE}&hourly=wind_speed_10m,wind_direction_10m,temperature_2m,sea_surface_temperature&timezone=Europe/Paris&start_date={today}&end_date={today}"
+url_marine = f"https://marine-api.open-meteo.com/v1/marine?latitude={LATITUDE}&longitude={LONGITUDE}&hourly=sea_surface_height_above_mean_sea_level&timezone=Europe/Paris&start_date={today}&end_date={today}"
+
+w = requests.get(url_weather).json()["hourly"]
+m_data = requests.get(url_marine).json()["hourly"]
+
 hour = datetime.datetime.now().hour
 wd, ws, temp, water = w["wind_direction_10m"][hour], w["wind_speed_10m"][hour], w["temperature_2m"][hour], w["sea_surface_temperature"][hour]
+tide_heights = m_data["sea_surface_height_above_mean_sea_level"]
 
 card = ["N", "NE", "E", "SE", "S", "SO", "O", "NO"][round(wd / 45) % 8]
 anim_speed = max(0.4, 40.0 / max(ws, 1))
@@ -220,10 +223,11 @@ with col2:
     st.write(f"💨 Vent actuel : **{ws} km/h** ({card} - {int(wd)}°)")
     
     fig, ax = plt.subplots(figsize=(6, 2.8))
-    ax.plot(range(24), [get_tide_height(h) for h in range(24)], color="#0288d1")
-    ax.scatter(hour, get_tide_height(hour), color="red", zorder=5)
+    ax.plot(range(len(tide_heights)), tide_heights, color="#0288d1", linewidth=2)
+    ax.scatter(hour, tide_heights[hour], color="red", zorder=5)
     ax.axvline(x=hour, color='red', linestyle='--', alpha=0.5)
-    ax.set_title("Cycle de la Marée (Heure actuelle en rouge)")
+    ax.set_ylabel("Hauteur (m)")
+    ax.set_title("Niveau de la mer / Marée (Heure actuelle en rouge)")
     st.pyplot(fig)
 
 st.markdown("---")
